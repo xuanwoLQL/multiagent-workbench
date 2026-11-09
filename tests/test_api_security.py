@@ -546,8 +546,9 @@ def test_path_boundary_semantics(tmp_path):
     if os.name == "nt":
         assert is_within(Path("C:/A/B"), Path("c:/a"))
         assert not is_within(Path("C:/ab"), Path("C:/a"))
-    assert is_within(Path(r"\\server\share\x"), Path(r"\\server\share"))
-    assert not is_within(Path(r"\\server\other"), Path(r"\\server\share"))
+    if os.name == "nt":
+        assert is_within(Path(r"\\server\share\x"), Path(r"\\server\share"))
+        assert not is_within(Path(r"\\server\other"), Path(r"\\server\share"))
 
 
 def test_host_and_origin_helpers():

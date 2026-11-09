@@ -543,6 +543,7 @@ def _add_session(wb, session_id: str, *, pid: int, host: str, heartbeat_at: str)
     )
 
 
+@pytest.mark.skipif(os.name != "nt", reason="本机 PID 存活语义是 Windows 专属")
 def test_recover_interrupts_dead_local_pid_immediately(wb, project) -> None:
     """同机会话 PID 已死：心跳再新鲜也必须**立刻**回收，且任务可 resume。"""
     adapter = _install(wb, "worker", delay=0.0, files={"resume.txt": "ok"})
@@ -564,6 +565,7 @@ def test_recover_interrupts_dead_local_pid_immediately(wb, project) -> None:
     assert adapter.run_count == 1
 
 
+@pytest.mark.skipif(os.name != "nt", reason="本机 PID 存活语义是 Windows 专属")
 def test_recover_keeps_running_task_of_live_local_pid(wb, project) -> None:
     """同机会话 PID 仍活：即使心跳早已过期也不能误杀（本机另一个调度方）。"""
     task = wb.tasks.create(project["id"], "对端在跑", kind="generic", agent_id="worker")

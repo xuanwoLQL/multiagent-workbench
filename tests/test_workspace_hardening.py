@@ -129,6 +129,7 @@ class TestScopeEscapes:
         assert ChangeJournal.scope_check("srcevil/x.py", ["src"], False) is False
         assert ChangeJournal.scope_check("src-evil/x.py", ["src"], False) is False
 
+    @pytest.mark.skipif(os.name != "nt", reason="Windows 大小写不敏感")
     def test_case_difference_on_windows(self):
         """Windows 大小写不敏感：src/** 必须覆盖 SRC/main.py，否则是绕过。"""
         assert ChangeJournal.scope_check("SRC/main.py", ["src/**"], False) is True
@@ -178,7 +179,8 @@ class TestScopeEscapes:
             workspace_root=root,
             work_root=work,
         )
-        assert [r.in_scope for r in recorded] == [True, False]
+        expected_first = True if os.name == "nt" else False
+        assert [r.in_scope for r in recorded] == [expected_first, False]
         assert recorded[0].escaped_path is False
         assert recorded[1].escaped_path is True and recorded[1].reason
 

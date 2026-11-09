@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -33,7 +34,7 @@ def test_import_same_directory_twice_returns_409_with_existing_id(wb, tmp_path: 
     assert "first" in body["message"]
 
     # 尾斜杠 / 反斜杠 / 大小写（Windows）视为同一目录。
-    variant = str(root) + "\\"
+    variant = str(root) + os.sep
     third = client.post("/api/projects/import", json={"path": variant, "name": "third"})
     assert third.status_code == 409, third.text
 

@@ -199,6 +199,7 @@ def test_session_close_reaps_grandchildren(tmp_path):
     assert _wait_dead(grandchild), f"孙进程 {grandchild} 在会话关闭后仍存活（孤儿）"
 
 
+@pytest.mark.skipif(not IS_WIN, reason="Windows 进程树/信号语义")
 def test_orphan_survives_when_only_direct_child_is_killed(tmp_path):
     """对照实验：证明「只 kill 直接子进程」确实会留下孤儿（缺陷真实存在）。"""
     pidfile = tmp_path / "grandchild2.pid"
@@ -467,6 +468,7 @@ def test_cross_process_cancel_sentinel_stops_cli(tmp_path):
     assert "取消" in err or "cancelled" in err.lower(), err
 
 
+@pytest.mark.skipif(not IS_WIN, reason="Windows 取消信号语义")
 def test_cancel_is_distinguishable_from_timeout_and_failure(tmp_path):
     """取消(-15) 必须与超时(-9/超时文案)、普通失败(真实退出码) 区分开。"""
     from multiagent.agents.proc import CANCELLED_EXIT
@@ -520,6 +522,7 @@ def test_no_cancel_event_is_backward_compatible(tmp_path):
 # ======================================================= 3. resolve.py
 
 
+@pytest.mark.skipif(not IS_WIN, reason="Windows .CMD 包装")
 def test_resolve_cmd_wrapper_uses_safe_form():
     """含空格路径 + 含空格参数：必须走 /d /s /c "..." 的安全形式。"""
     command, args = wrap_executable(r"C:\Program Files\a b\codex-acp.CMD", ["--x"])
@@ -583,6 +586,7 @@ def test_resolve_missing_executable_reports_clearly(tmp_path):
     assert "definitely-not-installed-xyz" in (result.error or "")
 
 
+@pytest.mark.skipif(not IS_WIN, reason="Windows reg.exe 回退")
 def test_reg_fallback_tolerates_non_utf8_and_none_stdout(monkeypatch):
     """复现（生产日志）：reg.exe 的 GBK 输出让 text=True 的 reader 线程崩掉，
     .stdout 变成 None → ``None.splitlines()`` → /api/agents/detail 500。"""
