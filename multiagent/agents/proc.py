@@ -374,9 +374,17 @@ def decode_output(data: bytes | str | None) -> str:
         preferred = locale.getpreferredencoding(False)
     except (LookupError, ValueError):  # pragma: no cover
         preferred = ""
-    if preferred and preferred.lower().replace("-", "") not in ("utf8", "utf8mb4"):
-        candidates.append(preferred)
-    candidates.append("gbk")
+    normalized = preferred.lower().replace("-", "").replace("_", "") if preferred else ""
+    if normalized and normalized not in ("utf8", "utf8mb4"):
+        # English Windows uses cp1252, which decodes almost any byte sequence
+        # without error. Try GBK first there so Chinese CLI output is not
+        # silently turned into cp1252 mojibake.
+        if normalized in ("cp1252", "latin1", "iso88591"):
+            candidates.extend(["gbk", preferred])
+        else:
+            candidates.extend([preferred, "gbk"])
+    else:
+        candidates.append("gbk")
     for encoding in candidates:
         try:
             return data.decode(encoding)

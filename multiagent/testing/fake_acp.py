@@ -20,6 +20,15 @@ PROTOCOL_VERSION = 1
 SESSION_ID = "fake-session-1"
 
 
+def _force_utf8_stdio() -> None:
+    """ACP is a UTF-8 protocol; Windows CI may default stdout to cp1252."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
+
 def send(message: dict[str, Any]) -> None:
     sys.stdout.write(json.dumps(message, ensure_ascii=False) + "\n")
     sys.stdout.flush()
@@ -43,6 +52,7 @@ def notify(method: str, params: dict[str, Any]) -> None:
 
 
 def main() -> int:
+    _force_utf8_stdio()
     plan = read_plan()
     while True:
         message = read_message()
