@@ -9,6 +9,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PYTHONIOENCODING: utf-8
+
 jobs:
   test:
     name: ${{ matrix.os }} / py${{ matrix.python }}

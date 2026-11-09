@@ -30,6 +30,14 @@ OUT = REPO / "docs" / "REQUIREMENTS-EVIDENCE.md"
 PY = REPO / ".venv" / "Scripts" / "python.exe"
 PYTHON = str(PY if PY.exists() else sys.executable)
 
+
+def _force_utf8_stdio() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
 # docs/REQUIREMENTS.md 里的测试引用形如 tests/test_x.py::test_y 或 tests/test_x.py
 TEST_REF = re.compile(r"(tests/[\w./-]+\.py)(?:::(test_[\w]+))?")
 ROW = re.compile(r"^\|\s*(\d+)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*$")
@@ -89,6 +97,7 @@ def run_cited(refs: list[str]) -> tuple[dict[str, str], list[str]]:
 
 
 def main() -> int:
+    _force_utf8_stdio()
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-run", action="store_true", help="只检查引用存在性，不实际运行")
     args = ap.parse_args()
