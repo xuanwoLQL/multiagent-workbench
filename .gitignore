@@ -13,7 +13,7 @@ dist/
 reference/
 runtime/
 workspaces/
-projects/
+/projects/
 demo_home/
 _cli_home/
 .probe_*
