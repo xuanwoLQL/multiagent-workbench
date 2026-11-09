@@ -489,5 +489,5 @@ examples/               大型项目计划示例
 
 ## 许可证
 
-仓库根目录未附带独立 `LICENSE` 文件；`pyproject.toml` 的 `license` 字段标注为 `MIT`。
-公开再分发前，建议由维护者补齐正式的 MIT 许可证文本。
+本项目采用 [MIT License](LICENSE)。完整文本见仓库根目录 `LICENSE`；
+`pyproject.toml` 的 `license` 字段同样标注为 `MIT`。

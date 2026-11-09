@@ -4,14 +4,14 @@
   "version": "2.0.0",
   "source_directory": "~/multi_xuanwo",
   "export_directory": "~/multi_xuanwo/.publish/multiagent-workbench",
-  "generated_at": "2026-11-09T11:54:37+08:00",
+  "generated_at": "2026-11-09T12:36:27+08:00",
   "count_scope": "All exported files excluding EXPORT-MANIFEST.json itself",
-  "file_count": 292,
-  "total_bytes": 4980606,
-  "file_count_including_manifest": 293,
+  "file_count": 458,
+  "total_bytes": 11705384,
+  "file_count_including_manifest": 459,
   "largest_file": {
-    "path": "multiagent/web/app.js",
-    "bytes": 193854
+    "path": ".git/objects/pack/pack-045504c8fed54d866cb15781a2ec81d3f6d68171.pack",
+    "bytes": 1919945
   },
   "files_over_50mb": [],
   "screenshots": [
