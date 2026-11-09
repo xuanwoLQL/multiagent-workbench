@@ -13,6 +13,11 @@ from .fake_plan import apply_plan, read_plan
 
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     prompt = sys.stdin.read() if not sys.stdin.isatty() else ""
     plan = read_plan()
     result = apply_plan(plan, Path.cwd())

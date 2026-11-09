@@ -102,7 +102,7 @@ def cmd_doctor(app: Workbench, args) -> int:
     errors = list(getattr(app.config, "errors", []) or [])
     add("config_errors", not errors, "; ".join(errors) or "无")
 
-    for agent in app.config.agents:
+    for agent in ([] if getattr(args, "skip_agents", False) else app.config.agents):
         aid = str(agent.get("id"))
         enabled = agent.get("enabled", True)
         if agent.get("protocol") == "human":
@@ -720,6 +720,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_config)
 
     p = sub.add_parser("doctor", help="环境 / 配置 / Agent 自检")
+    p.add_argument("--skip-agents", action="store_true", help="跳过 Agent 可执行文件检查（CI 无 Agent CLI 时使用）")
     p.set_defaults(func=cmd_doctor)
 
     p = sub.add_parser("storage", help="存储盘点（数据库 / 运行证据 / 快照 / 日志 / 备份）")

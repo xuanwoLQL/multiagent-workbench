@@ -43,7 +43,7 @@ jobs:
       - name: Unit + integration tests (fake agents, no model quota)
         run: python -m pytest -o addopts= -q
       - name: Doctor (config + database integrity, no Agent handshake)
-        run: python -m multiagent doctor
+        run: python -m multiagent doctor --skip-agents
       - name: Requirements traceability
         run: python scripts/verify_requirements.py
 
