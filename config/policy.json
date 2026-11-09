@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "concurrency": {
+    "global": 6,
+    "per_project": 3
+  },
+  "default_timeout_sec": 1800,
+  "task_defaults": {
+    "timeout_sec": 1800,
+    "max_attempts": 3
+  },
+  "retry": {
+    "backoff_seconds": 0,
+    "timeout_multiplier": 1.5,
+    "max_timeout_sec": 3600
+  },
+  "timeout": {
+    "warning_seconds": 300
+  },
+  "workspace": {
+    "ignore_file": ".multiagentignore",
+    "excludes": []
+  },
+  "context_budget_chars": 12000,
+  "injection": {
+    "include_handoffs": true,
+    "include_decisions": true,
+    "include_open_issues": true,
+    "include_todos": true,
+    "include_project_memory": true,
+    "max_handoffs": 5,
+    "max_entries_per_type": 8
+  },
+  "isolation": {
+    "default": "worktree",
+    "sync_back_on_accept": true,
+    "block_conflict": true,
+    "revert_out_of_scope": true,
+    "resume_partial_on_retry": true
+  },
+  "git": {
+    "auto_merge": false,
+    "require_clean_tree": true,
+    "require_merged_for_dependents": true,
+    "keep_worktree": true,
+    "worktree_retention_days": 14,
+    "author_name": "MultiAgent",
+    "author_email": "multiagent@local"
+  },
+  "processes": {
+    "audit_enabled": true,
+    "reap_orphans": true,
+    "cim_fallback": true,
+    "min_timeout_sec": 0
+  },
+  "recover": {
+    "heartbeat_seconds": 5,
+    "run_heartbeat_seconds": 10,
+    "stale_seconds": 300
+  },
+  "dangerous_ops": {
+    "require_confirmation": [
+      "delete",
+      "overwrite_existing_artifact",
+      "modify_project_config"
+    ],
+    "auto_approve": false,
+    "block_commit_on_destructive": true,
+    "protect_paths": [
+      ".multiagent",
+      "config",
+      ".git"
+    ]
+  },
+  "review_gate": {
+    "memory_requires_approval": true,
+    "default_entry_status": "approved"
+  },
+  "snapshot": {
+    "on_task_start": false,
+    "keep": 20
+  },
+  "kinds": {
+    "code": {
+      "isolation": "worktree",
+      "read_only": false,
+      "acceptance_ref": "file-changed",
+      "timeout_sec": 2400,
+      "max_attempts": 3
+    },
+    "doc": {
+      "isolation": "worktree",
+      "read_only": false,
+      "acceptance_ref": "file-exists",
+      "timeout_sec": 2400,
+      "max_attempts": 3
+    },
+    "ppt": {
+      "isolation": "worktree",
+      "read_only": false,
+      "acceptance_ref": "file-exists",
+      "timeout_sec": 2400,
+      "max_attempts": 3
+    },
+    "diagrams": {
+      "isolation": "worktree",
+      "read_only": false,
+      "acceptance_ref": "file-changed",
+      "timeout_sec": 1800,
+      "max_attempts": 3
+    },
+    "web": {
+      "isolation": "worktree",
+      "read_only": false,
+      "acceptance_ref": "file-changed",
+      "timeout_sec": 2400,
+      "max_attempts": 3
+    },
+    "data": {
+      "isolation": "worktree",
+      "read_only": false,
+      "acceptance_ref": "file-changed",
+      "timeout_sec": 1800,
+      "max_attempts": 3
+    },
+    "research": {
+      "isolation": "worktree",
+      "read_only": false,
+      "acceptance_ref": "file-exists",
+      "timeout_sec": 1800,
+      "max_attempts": 3
+    },
+    "review": {
+      "isolation": "shared",
+      "read_only": true,
+      "acceptance_ref": "review-readonly",
+      "timeout_sec": 1800,
+      "max_attempts": 2
+    },
+    "manual": {
+      "isolation": "shared",
+      "read_only": false,
+      "acceptance_ref": "manual-confirm",
+      "timeout_sec": 0,
+      "max_attempts": 1
+    },
+    "generic": {
+      "isolation": "worktree",
+      "read_only": false,
+      "acceptance_ref": "file-exists",
+      "timeout_sec": 1800,
+      "max_attempts": 3
+    }
+  },
+  "decomposition": {
+    "agent_by_stage": {
+      "requirements-freeze": "claude",
+      "sim-core": "codex",
+      "web-3d": "codex",
+      "diagrams": "claude",
+      "ppt": "claude",
+      "docs": "claude",
+      "review": "claude",
+      "fix": "codex",
+      "final-qa": "codex"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="多 Agent 协作工作台">
+  <rect width="32" height="32" rx="5" fill="#f2f0ea"/>
+  <rect x="4" y="4" width="24" height="24" rx="3" fill="#17212b"/>
+  <path d="M16 8.6 L23.4 16 L16 23.4 L8.6 16 Z" fill="none" stroke="#faf8f2" stroke-width="1.7" stroke-linejoin="round"/>
+  <path d="M16 12.6 L19.4 16 L16 19.4 L12.6 16 Z" fill="#df542f"/>
+</svg>

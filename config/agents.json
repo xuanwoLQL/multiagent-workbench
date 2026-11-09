@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "defaults": {
+    "timeout_sec": 2400,
+    "permission": "guarded",
+    "quota": {
+      "max_invocations": 200,
+      "max_seconds": 36000,
+      "max_cost": 60.0
+    }
+  },
+  "agents": [
+    {
+      "id": "codex",
+      "label": "Codex",
+      "protocol": "acp",
+      "command": "codex-acp",
+      "timeout_sec": 3600,
+      "args": [],
+      "cli": {
+        "command": "codex",
+        "args": [
+          "exec",
+          "-"
+        ],
+        "prompt_mode": "stdin"
+      },
+      "roles": [
+        "lead",
+        "implementer",
+        "verifier",
+        "reviser",
+        "reviewer"
+      ],
+      "strengths": [
+        "code",
+        "engineering",
+        "refactor",
+        "tests",
+        "build"
+      ],
+      "can_write": true,
+      "enabled": true,
+      "notes": "官方 ACP 适配器 @agentclientprotocol/codex-acp；CLI 兜底 codex exec -"
+    },
+    {
+      "id": "claude",
+      "label": "Claude Code",
+      "protocol": "acp",
+      "command": "claude-agent-acp",
+      "timeout_sec": 2400,
+      "args": [],
+      "cli": {
+        "command": "claude",
+        "args": [
+          "-p"
+        ],
+        "prompt_mode": "stdin"
+      },
+      "roles": [
+        "lead",
+        "reviewer",
+        "verifier",
+        "writer",
+        "reviser"
+      ],
+      "strengths": [
+        "doc",
+        "prose",
+        "review",
+        "research",
+        "reasoning"
+      ],
+      "can_write": true,
+      "enabled": true,
+      "notes": "官方 ACP 适配器 @agentclientprotocol/claude-agent-acp；CLI 兜底 claude -p"
+    },
+    {
+      "id": "opencode",
+      "label": "OpenCode",
+      "protocol": "acp",
+      "command": "opencode",
+      "timeout_sec": 2400,
+      "args": [
+        "acp"
+      ],
+      "cli": {
+        "command": "opencode",
+        "args": [
+          "run"
+        ],
+        "prompt_mode": "arg",
+        "append_prompt": true
+      },
+      "roles": [
+        "lead",
+        "implementer",
+        "recon",
+        "worker"
+      ],
+      "strengths": [
+        "code",
+        "shell",
+        "data",
+        "explore",
+        "general"
+      ],
+      "can_write": true,
+      "enabled": true,
+      "notes": "自带 `opencode acp` 子命令；CLI 兜底 opencode run <message>"
+    },
+    {
+      "id": "dsh",
+      "label": "DeepSeek Harness",
+      "protocol": "acp",
+      "command": "dsh",
+      "timeout_sec": 2400,
+      "args": [
+        "--profile",
+        "acp"
+      ],
+      "cli": null,
+      "resolve": "dsh",
+      "roles": [
+        "implementer",
+        "summarizer",
+        "worker"
+      ],
+      "strengths": [
+        "code",
+        "data",
+        "summarize",
+        "general"
+      ],
+      "can_write": true,
+      "enabled": true,
+      "notes": "DeepSeek Harness 桌面版自带 CLI，`--profile acp` 即标准 ACP v1 stdio server"
+    }
+  ]
+}

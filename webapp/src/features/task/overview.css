@@ -1,0 +1,564 @@
+/* ============================================================================
+   Task overview — delivery, isolation, cost, process and acceptance details.
+   All colors, radii and type sizes come from styles/tokens.css.
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ git delivery */
+
+.td-git-file-count {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.td-merge-state {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+}
+
+.td-merge-state.is-success {
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+.td-merge-state.is-danger {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.td-merge-state.is-warning {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.td-merge-state.is-info {
+  border-color: var(--info);
+  background: var(--info-soft);
+}
+
+.td-merge-state.is-neutral {
+  border-color: var(--border);
+}
+
+.td-merge-state-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.td-merge-state.is-success .td-merge-state-head {
+  color: var(--success-text);
+}
+
+.td-merge-state.is-danger .td-merge-state-head {
+  color: var(--danger-text);
+}
+
+.td-merge-state.is-warning .td-merge-state-head {
+  color: var(--warning-text);
+}
+
+.td-merge-state.is-info .td-merge-state-head {
+  color: var(--info);
+}
+
+.td-merge-state-head > svg {
+  flex: none;
+}
+
+.td-merge-state-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.td-merge-state-meta {
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+
+.td-merge-state-meta code {
+  font-size: var(--fs-xs);
+  overflow-wrap: anywhere;
+}
+
+.td-merge-files {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 160px;
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+}
+
+.td-merge-files li {
+  min-width: 0;
+}
+
+.td-merge-files code {
+  display: block;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-merge-files-more {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.td-merge-error {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-strong);
+  color: var(--danger-text);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.td-merge-state.is-warning .td-merge-error {
+  color: var(--warning-text);
+}
+
+/* 分支已提交但未合并：明确告诉用户下游任务看不到这些产出。 */
+.td-merge-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--warning);
+  border-left-width: 3px;
+  border-radius: var(--r-sm);
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+
+.td-merge-warning > svg {
+  margin-top: 1px;
+  flex: none;
+}
+
+.td-merge-warning-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.td-merge-warning-title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.td-merge-warning-body,
+.td-merge-warning-policy {
+  margin-top: 3px;
+  font-size: var(--fs-xs);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.td-merge-warning-policy {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px dashed var(--warning);
+  font-weight: 500;
+}
+
+.td-git-note {
+  margin: 9px 0 0;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  line-height: 1.55;
+}
+
+.td-git-note code {
+  font-size: var(--fs-xs);
+}
+
+/* ------------------------------------------------------------------ isolation */
+
+.td-warning-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--warning);
+  border-left-width: 3px;
+  border-radius: var(--r-sm);
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+
+.td-warning-note > svg {
+  margin-top: 1px;
+  flex: none;
+}
+
+.td-warning-note-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.td-warning-note-title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.td-warning-note-body {
+  margin-top: 3px;
+  font-size: var(--fs-xs);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.td-isolation-declared {
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+}
+
+.td-isolation-declared code {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  background: var(--surface-sunken);
+  font-size: var(--fs-xs);
+}
+
+.td-muted-note {
+  margin-top: 5px;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------------------------ processes */
+
+.td-process-group {
+  margin-top: 10px;
+}
+
+.td-process-group:first-of-type {
+  margin-top: 0;
+}
+
+.td-process-label {
+  margin-bottom: 4px;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.td-process-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.td-process-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-faint);
+  border-radius: var(--r-xs);
+  background: var(--surface-sunken);
+}
+
+.td-process-pid {
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.td-process-port {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.td-process-port.is-muted {
+  color: var(--text-faint);
+}
+
+.td-process-command {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-process-warnings {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: var(--fs-xs);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------ acceptance */
+
+.td-acceptance-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.td-acceptance-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-bottom: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.td-acceptance-result > svg {
+  margin-top: 1px;
+  flex: none;
+}
+
+.td-acceptance-result.is-ok {
+  border-color: var(--success);
+  background: var(--success-soft);
+  color: var(--success-text);
+}
+
+.td-acceptance-result.is-failed {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+
+.td-acceptance-diagnostics {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-strong);
+}
+
+.td-acceptance-diagnostics-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 7px;
+  color: var(--warning-text);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.td-acceptance-diagnostic {
+  padding: 8px 10px;
+  border: 1px solid var(--warning);
+  border-left-width: 3px;
+  border-radius: var(--r-sm);
+  background: var(--warning-soft);
+}
+
+.td-acceptance-diagnostic + .td-acceptance-diagnostic {
+  margin-top: 6px;
+}
+
+.td-acceptance-diagnostic-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.td-acceptance-diagnostic-detail {
+  min-width: 0;
+  flex: 1;
+  color: var(--warning-text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.td-acceptance-hint {
+  margin-top: 4px;
+  color: var(--warning-text);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.td-acceptance-candidates {
+  margin-top: 6px;
+}
+
+.td-acceptance-candidates-label {
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.td-acceptance-candidate-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.td-acceptance-candidate-list code {
+  max-width: 100%;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-resume-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+.td-resume-note > svg {
+  margin-top: 1px;
+  flex: none;
+}
+
+/* ------------------------------------------------------------------ cost */
+
+.td-cost-note {
+  margin-top: 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.td-cost-note.is-warning {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning-text);
+}
+
+/* ------------------------------------------------------------------ correction dialog */
+
+.td-correction-suggestions {
+  margin-bottom: 12px;
+}
+
+.td-correction-suggestions-label {
+  margin-bottom: 5px;
+  color: var(--text-faint);
+  font-size: var(--fs-xs);
+}
+
+.td-correction-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.td-correction-suggestion + .td-correction-suggestion {
+  margin-top: 5px;
+}
+
+.td-correction-suggestion:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.td-correction-suggestion > svg {
+  flex: none;
+}
+
+.td-correction-suggestion span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.td-acceptance-json {
+  min-height: 240px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.td-correction-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--danger);
+  border-left-width: 3px;
+  border-radius: var(--r-sm);
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.td-correction-error > svg {
+  margin-top: 1px;
+  flex: none;
+}

@@ -1,0 +1,70 @@
+{
+  "name": "multiagent-desktop",
+  "version": "2.0.0",
+  "private": true,
+  "description": "MultiAgent 工作台 —— Electron 桌面壳（内部拉起 Python 后端）",
+  "author": "Multi-Agent Workbench",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "icons": "..\\.venv\\Scripts\\python.exe tools\\make_icons.py",
+    "dist": "electron-builder --win",
+    "dist:portable": "electron-builder --win portable",
+    "dist:v2": "electron-builder --win --config.directories.output=release-v2",
+    "dist:portable:v2": "electron-builder --win portable --config.directories.output=release-v2"
+  },
+  "build": {
+    "appId": "com.multiagent.workbench",
+    "productName": "MultiAgent",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash.html",
+      "package.json",
+      "assets/**"
+    ],
+    "extraResources": [
+      {
+        "from": "backend-dist",
+        "to": "backend"
+      },
+      {
+        "from": "assets",
+        "to": "assets"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "assets/icon.ico",
+      "artifactName": "multiagent-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MultiAgent",
+      "installerLanguages": [
+        "zh_CN"
+      ],
+      "displayLanguageSelector": false,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "multiagent-${version}-${arch}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "multiagent-${version}-${arch}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^25.1.8"
+  }
+}

@@ -1,0 +1,129 @@
+:root {
+  color-scheme: light;
+
+  /* Surfaces — warm neutral paper, like a desktop tool rather than a dashboard demo. */
+  --bg: #f7f7f5;
+  --bg-subtle: #f1f1ee;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #fafaf8;
+  --sidebar: #f4f4f1;
+  --overlay: rgba(24, 24, 21, 0.36);
+
+  /* Ink */
+  --text: #1b1b18;
+  --text-secondary: #575650;
+  --text-muted: #7d7b74;
+  --text-faint: #a3a19a;
+  --text-inverse: #ffffff;
+
+  /* Lines */
+  --border: #e5e4df;
+  --border-strong: #d5d3cc;
+  --border-faint: #eeede9;
+
+  /* Accent */
+  --accent: #3b5bdb;
+  --accent-hover: #2f4bc4;
+  --accent-active: #2740a8;
+  --accent-soft: #eef1fd;
+  --accent-soft-hover: #e3e8fb;
+  --accent-text: #2f4bc4;
+  --focus-ring: rgba(59, 91, 219, 0.35);
+
+  /* Semantic */
+  --success: #1a7f45;
+  --success-soft: #e9f7ee;
+  --success-text: #126636;
+  --warning: #b25e09;
+  --warning-soft: #fdf3e4;
+  --warning-text: #8a4706;
+  --danger: #b42318;
+  --danger-soft: #fdeceb;
+  --danger-text: #8f1b12;
+  --info: #0d6b8a;
+  --info-soft: #e8f6fa;
+  --neutral-soft: #f0efec;
+
+  /* Typography */
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", -apple-system, "Inter",
+    "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", "SFMono-Regular", Consolas,
+    "Liberation Mono", monospace;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 26px;
+
+  /* Geometry */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 999px;
+
+  --shadow-xs: 0 1px 1px rgba(20, 19, 16, 0.03);
+  --shadow-sm: 0 1px 2px rgba(20, 19, 16, 0.05), 0 1px 1px rgba(20, 19, 16, 0.03);
+  --shadow-md: 0 2px 6px rgba(20, 19, 16, 0.06), 0 8px 24px rgba(20, 19, 16, 0.06);
+  --shadow-lg: 0 12px 40px rgba(20, 19, 16, 0.12), 0 2px 8px rgba(20, 19, 16, 0.06);
+
+  --sidebar-w: 248px;
+  --inspector-w: 320px;
+  --topbar-h: 48px;
+  --statusbar-h: 26px;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-fast: 90ms;
+  --dur: 160ms;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #161614;
+  --bg-subtle: #1c1c1a;
+  --surface: #1f1f1d;
+  --surface-raised: #242422;
+  --surface-sunken: #191917;
+  --sidebar: #1b1b19;
+  --overlay: rgba(0, 0, 0, 0.55);
+
+  --text: #ecebe6;
+  --text-secondary: #b6b4ac;
+  --text-muted: #8f8d85;
+  --text-faint: #6b6962;
+  --text-inverse: #161614;
+
+  --border: #2e2e2b;
+  --border-strong: #3d3c38;
+  --border-faint: #262623;
+
+  --accent: #7b91f5;
+  --accent-hover: #91a3f7;
+  --accent-active: #b0bdf9;
+  --accent-soft: #232741;
+  --accent-soft-hover: #2a3050;
+  --accent-text: #a9b8fa;
+  --focus-ring: rgba(123, 145, 245, 0.45);
+
+  --success: #5fbe85;
+  --success-soft: #16291e;
+  --success-text: #7fd09d;
+  --warning: #e0a15a;
+  --warning-soft: #2d2115;
+  --warning-text: #eebd85;
+  --danger: #f08076;
+  --danger-soft: #301a18;
+  --danger-text: #f2a49c;
+  --info: #64bcd4;
+  --info-soft: #14262b;
+  --neutral-soft: #2a2a27;
+
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+}

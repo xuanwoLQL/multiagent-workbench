@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>多 Agent 协作工作台 · 指挥台</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body class="graphite-stage">
+<div class="app app-window" id="app">
+
+  <!-- ============================ topbar 64px ============================ -->
+  <header class="topbar" id="topbar">
+    <div class="brand">
+      <span class="window-dots" aria-hidden="true">
+        <span class="window-dot window-dot-close"></span>
+        <span class="window-dot window-dot-min"></span>
+        <span class="window-dot window-dot-max"></span>
+      </span>
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div class="brand-text">
+        <span class="brand-name" id="brand-name">MultiAgent</span>
+        <span class="brand-sub">ORCHESTRATION DESK</span>
+      </div>
+    </div>
+
+    <div class="topbar-group topbar-project">
+      <label class="topbar-label" for="project-select">项目</label>
+      <select id="project-select" class="select select-project" aria-label="当前项目">
+        <option value="">选择项目…</option>
+      </select>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="topbar-group">
+      <button type="button" id="btn-new-project" class="btn ghost" title="新建一个空白工作区">＋ 新建</button>
+      <button type="button" id="btn-import-project" class="btn ghost" title="导入已有目录作为工作区">导入目录</button>
+      <button type="button" id="btn-project-settings" class="btn ghost" title="项目设置：重命名 / 修正乱码名称">设置</button>
+    </div>
+
+    <div class="topbar-group topbar-status">
+      <span id="run-status" class="pill idle" role="status">空闲</span>
+      <span id="desktop-badge" class="pill desktop" hidden>桌面版</span>
+      <button type="button" id="btn-refresh" class="icon-btn" title="刷新当前视图" aria-label="刷新当前视图">↻</button>
+    </div>
+  </header>
+
+  <!-- ============================ shell ============================ -->
+  <div class="shell">
+
+    <!-- ---------------------------- sidebar 220 ---------------------------- -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-search" role="search">
+        <span class="sidebar-search-glyph" aria-hidden="true">⌕</span>
+        <label class="sr-only" for="sidebar-query">搜索任务或 Agent</label>
+        <input id="sidebar-query" class="sidebar-search-input" type="search"
+          placeholder="Search tasks / agents" aria-label="搜索任务或 Agent" autocomplete="off" />
+        <kbd class="sidebar-search-kbd" title="Command + K">⌘K</kbd>
+      </div>
+
+      <section class="side-card identity-card" aria-label="当前项目">
+        <div class="side-eyebrow">PROJECT</div>
+        <div class="identity-name" id="side-project-name">未选择项目</div>
+        <div class="identity-path mono" id="side-project-path">新建或导入一个工作区开始</div>
+        <div class="identity-agents" id="side-agents" aria-label="Agent 编队">
+          <span class="agent-dot" title="Codex">CX</span>
+          <span class="agent-dot" title="Claude Code">CC</span>
+          <span class="agent-dot" title="OpenCode">OC</span>
+          <span class="agent-dot" title="DSH">DS</span>
+          <span class="agent-dot-more mono">4</span>
+        </div>
+        <div class="identity-actions">
+          <span class="side-status-pill tone-idle">就绪</span>
+          <span class="side-meta mono">UTF-8</span>
+        </div>
+      </section>
+
+      <nav class="nav" id="nav" aria-label="主导航">
+        <div class="nav-group-title">Pinned</div>
+        <button type="button" class="nav-item is-active" data-view="home" aria-current="page">
+          <span class="nav-ico" aria-hidden="true">◈</span><span class="nav-label">指挥台</span>
+        </button>
+        <button type="button" class="nav-item" data-view="tasks">
+          <span class="nav-ico" aria-hidden="true">☑</span><span class="nav-label">任务</span>
+          <span class="nav-count" id="nav-tasks">0</span>
+        </button>
+        <button type="button" class="nav-item" data-view="dag">
+          <span class="nav-ico" aria-hidden="true">⌥</span><span class="nav-label">依赖图</span>
+        </button>
+
+        <div class="nav-group-title">Workspace</div>
+        <button type="button" class="nav-item" data-view="board">
+          <span class="nav-ico" aria-hidden="true">▦</span><span class="nav-label">共享黑板</span>
+        </button>
+        <button type="button" class="nav-item" data-view="handoffs">
+          <span class="nav-ico" aria-hidden="true">⇄</span><span class="nav-label">交接说明</span>
+        </button>
+        <button type="button" class="nav-item" data-view="approvals">
+          <span class="nav-ico" aria-hidden="true">!</span><span class="nav-label">人工确认</span>
+          <span class="nav-count alert" id="nav-approvals" style="display:none">0</span>
+        </button>
+        <button type="button" class="nav-item" data-view="snapshots">
+          <span class="nav-ico" aria-hidden="true">⛁</span><span class="nav-label">版本快照</span>
+        </button>
+
+        <div class="nav-group-title">System</div>
+        <button type="button" class="nav-item" data-view="agents">
+          <span class="nav-ico" aria-hidden="true">⚙</span><span class="nav-label">Agent 引擎</span>
+        </button>
+        <button type="button" class="nav-item" data-view="live">
+          <span class="nav-ico" aria-hidden="true">◉</span><span class="nav-label">实时</span>
+          <span class="nav-count" id="nav-live" style="display:none">0</span>
+        </button>
+        <button type="button" class="nav-item" data-view="observe">
+          <span class="nav-ico" aria-hidden="true">◎</span><span class="nav-label">观测 / 审计</span>
+        </button>
+        <button type="button" class="nav-item" data-view="config">
+          <span class="nav-ico" aria-hidden="true">✎</span><span class="nav-label">配置</span>
+        </button>
+        <button type="button" class="nav-item" data-view="system">
+          <span class="nav-ico" aria-hidden="true">▣</span><span class="nav-label">系统维护</span>
+        </button>
+      </nav>
+
+      <section class="side-card side-note" aria-label="工作方式">
+        <div class="side-eyebrow">HOW IT WORKS</div>
+        <ul class="side-list">
+          <li>一句话 → 自动拆成任务与依赖</li>
+          <li>Agent 产物写进当前工作区</li>
+          <li>危险操作先停下来问你</li>
+        </ul>
+      </section>
+
+      <div class="sidebar-foot">
+        <div class="foot-line mono">LOCAL-FIRST · 数据留在本机工作区</div>
+      </div>
+    </aside>
+
+    <!-- ---------------------------- center ---------------------------- -->
+    <main class="center" id="center">
+
+      <!-- ======================= 指挥台 ======================= -->
+      <section class="view is-active" id="view-home">
+        <header class="center-head control-head">
+          <div class="kicker">ORCHESTRATOR / CONTROL ROOM</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title" id="home-project-title">把目标交给一支 Agent 团队</h1>
+              <p class="head-sub" id="home-project-path">一句话派发 · 自动拆解 · 全程留痕。任务、依赖、产物与审批都落在同一个工作区里。</p>
+            </div>
+            <div class="head-actions control-actions">
+              <div class="head-meta mono" id="home-project-badge">AUTOPILOT READY</div>
+              <button type="button" class="btn primary" data-act="new-task">＋ New task</button>
+              <button type="button" class="btn ghost" data-act="mission-decompose">拆解大型项目</button>
+            </div>
+          </div>
+        </header>
+
+        <!-- 任务输入卡 -->
+        <section class="ops-card mission-card" aria-label="任务输入">
+          <div class="ops-card-head">
+            <div class="ops-card-title">一句话派活</div>
+            <div class="ops-card-hint">Ctrl / ⌘ + Enter 创建并启动</div>
+            <div class="spacer"></div>
+            <span class="mission-badge mono">UTF-8</span>
+          </div>
+
+          <label class="sr-only" for="mission-text">任务描述</label>
+          <textarea id="mission-text" class="textarea mission-text" rows="3"
+            placeholder="描述你要完成的任务，例如：调研 3 个竞品，写一份 2000 字对比报告，产出 竞品分析.md"></textarea>
+
+          <div class="mission-options">
+            <div class="field">
+              <label class="field-label" for="mission-outputs">产出文件</label>
+              <input id="mission-outputs" class="input" type="text" autocomplete="off"
+                placeholder="产出文件（可选，逗号分隔）" />
+            </div>
+            <div class="field">
+              <label class="field-label" for="mission-agent">执行者</label>
+              <select id="mission-agent" class="select" aria-label="执行者">
+                <option value="">自动选择</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="mission-kind">类型</label>
+              <select id="mission-kind" class="select" aria-label="任务类型">
+                <option value="auto">自动判断</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="mission-scope">写范围</label>
+              <input id="mission-scope" class="input" type="text" autocomplete="off"
+                placeholder="如 src/**, docs/**（留空将询问）" />
+            </div>
+          </div>
+
+          <label class="hint" style="display:flex;gap:8px;align-items:flex-start;margin-top:8px">
+            <input id="mission-unrestricted" type="checkbox" style="margin-top:2px" />
+            <span>我确认允许非只读任务不受限写入整个工作区（默认隔离副本，验收后才同步）。</span>
+          </label>
+
+          <div class="mission-actions">
+            <button type="button" id="mission-submit" class="btn" data-act="mission-create">创建任务</button>
+            <button type="button" id="mission-start" class="btn primary" data-act="mission-start">创建并启动</button>
+            <button type="button" id="mission-plan" class="btn link" data-act="mission-plan">拆解为三步计划 →</button>
+            <button type="button" id="mission-decompose" class="btn link" data-act="mission-decompose">拆解大型项目 →</button>
+          </div>
+
+          <div class="mission-templates" id="mission-templates" aria-label="任务模板">
+            <span class="chips-label mono">TEMPLATES</span>
+            <button type="button" class="chip" data-template="写一份报告：主题是……，目标读者是……，结构清晰，产出 报告.md">写一份报告</button>
+            <button type="button" class="chip" data-template="调研一个主题：……，收集关键资料与数据，给出结论和来源，产出 调研笔记.md">调研一个主题</button>
+            <button type="button" class="chip" data-template="审阅文档：……，指出事实错误、逻辑漏洞与表达问题，产出 审阅意见.md">审阅文档</button>
+            <button type="button" class="chip" data-template="修改代码：……，先读相关文件再改，保持最小改动，说明改动点与验证方式">修改代码</button>
+            <button type="button" class="chip" data-template="整理数据：……，清洗并结构化，输出表格与关键结论，产出 数据整理.csv">整理数据</button>
+          </div>
+        </section>
+
+        <!-- KPI 条 -->
+        <section class="kpi-grid" id="home-metrics" aria-label="任务指标">
+          <div class="kpi">
+            <div class="kpi-value">0</div>
+            <div class="kpi-label">任务总数</div>
+          </div>
+          <div class="kpi tone-run">
+            <div class="kpi-value">0</div>
+            <div class="kpi-label">执行中</div>
+          </div>
+          <div class="kpi tone-wait">
+            <div class="kpi-value">0</div>
+            <div class="kpi-label">等待人工</div>
+          </div>
+          <div class="kpi tone-ok">
+            <div class="kpi-value">0</div>
+            <div class="kpi-label">成功</div>
+          </div>
+          <div class="kpi tone-bad">
+            <div class="kpi-value">0</div>
+            <div class="kpi-label">失败</div>
+          </div>
+        </section>
+
+        <!-- 6 列任务看板 -->
+        <section class="ops-card board-card" aria-label="任务看板">
+          <div class="ops-card-head">
+            <div class="ops-card-title">Board <span class="lane-kicker" aria-hidden="true">LIVE ORCHESTRATION</span></div>
+            <div class="ops-card-hint">Live orchestration lanes · 按状态分列 · 点卡片看详情与操作</div>
+            <div class="spacer"></div>
+            <button type="button" class="card-link" data-view="tasks">全部任务 →</button>
+          </div>
+          <div class="kanban" id="home-kanban">
+            <div class="kcol tone-todo">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">待执行</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+            <div class="kcol tone-run">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">执行中</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+            <div class="kcol tone-wait">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">等待人工</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+            <div class="kcol tone-ok">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">成功</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+            <div class="kcol tone-bad">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">失败 · 阻塞</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+            <div class="kcol tone-closed">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">已跳过 · 取消</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 最近活动 -->
+        <section class="ops-card activity-card" aria-label="最近活动">
+          <div class="ops-card-head">
+            <div class="ops-card-title">最近活动</div>
+            <div class="ops-card-hint">最近 8 条 · 哈希链事件流</div>
+          </div>
+          <div class="activity" id="home-activity">
+            <div class="empty-box compact">
+              <div class="empty-mark">ACTIVITY</div>
+              <div class="empty-title">还没有活动记录</div>
+              <div class="empty-hint">创建第一个任务后，Agent 的每一步动作都会带时间戳写进这里。</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 空项目引导 -->
+        <section class="empty-box onboarding" id="home-onboarding" hidden>
+          <div class="empty-mark">GET STARTED</div>
+          <div class="empty-title">这个工作区还没有任务</div>
+          <div class="empty-hint">在上面写一句话就能开工；也可以先把已有目录导入进来，让 Agent 在真实文件上协作。</div>
+          <div class="empty-actions">
+            <button type="button" class="btn primary" data-act="new-task">新建任务</button>
+            <button type="button" class="btn" data-act="import-project">导入目录</button>
+          </div>
+        </section>
+      </section>
+
+      <!-- ======================= 任务 ======================= -->
+      <section class="view" id="view-tasks">
+        <header class="center-head">
+          <div class="kicker">TASKS / 任务</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title sm">任务看板</h1>
+              <p class="head-sub">点击卡片查看详情、依赖与产物；批量计划可一次导入多条任务。</p>
+            </div>
+            <div class="head-actions">
+              <button type="button" class="btn primary" data-act="new-task">＋ 新建任务</button>
+              <button type="button" class="btn" data-act="import-plan">批量计划(JSON)</button>
+            </div>
+          </div>
+        </header>
+
+        <section class="ops-card" aria-label="全部任务">
+          <div class="kanban kanban-tall" id="kanban">
+            <div class="kcol tone-todo">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">待执行</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+            <div class="kcol tone-run">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">执行中</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+            <div class="kcol tone-wait">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">等待人工</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+            <div class="kcol tone-ok">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">成功</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+            <div class="kcol tone-bad">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">失败 · 阻塞</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+            <div class="kcol tone-closed">
+              <div class="kcol-head"><span class="kcol-dot"></span><span class="kcol-name">已跳过 · 取消</span><span class="kcol-count">0</span></div>
+              <div class="kcol-body"><div class="kcol-empty">暂无</div></div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ======================= 依赖图 ======================= -->
+      <section class="view" id="view-dag">
+        <header class="center-head">
+          <div class="kicker">DAG / 依赖图</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title sm">任务依赖图</h1>
+              <p class="head-sub">按状态着色，点击节点查看详情；连线表示 depends_on 依赖关系。</p>
+            </div>
+          </div>
+        </header>
+
+        <section class="ops-card dag-card" aria-label="依赖图">
+          <svg id="dag" class="dag" viewBox="0 0 1000 520" preserveAspectRatio="xMidYMid meet" role="img" aria-label="任务依赖图">
+            <g class="dag-empty">
+              <rect class="dag-empty-box" x="330" y="206" width="340" height="108" rx="6"></rect>
+              <text class="dag-empty-title" x="500" y="252" text-anchor="middle">暂无依赖关系</text>
+              <text class="dag-empty-hint" x="500" y="276" text-anchor="middle">新建两个任务并设置依赖后，这里会画出 DAG</text>
+            </g>
+          </svg>
+        </section>
+      </section>
+
+      <!-- ======================= 共享黑板 ======================= -->
+      <section class="view" id="view-board">
+        <header class="center-head">
+          <div class="kicker">BLACKBOARD / 共享黑板</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title sm">共享黑板 / 记忆</h1>
+              <p class="head-sub">Agent 之间传递的简报、决策与参考资料，按类型、时间与关键词检索。</p>
+            </div>
+          </div>
+        </header>
+
+        <section class="ops-card fill-card" aria-label="黑板条目">
+          <div class="toolbar">
+            <input id="bb-query" class="input input-grow" type="search" placeholder="关键词检索…" aria-label="关键词检索" autocomplete="off" />
+            <input id="bb-since" class="input input-date" type="date" title="起始时间" aria-label="起始时间" />
+            <input id="bb-until" class="input input-date" type="date" title="截止时间" aria-label="截止时间" />
+            <select id="bb-type" class="select" aria-label="条目类型">
+              <option value="">全部类型</option>
+              <option value="brief">任务简报</option>
+              <option value="artifact">中间产物</option>
+              <option value="decision">决策记录</option>
+              <option value="handoff">交接说明</option>
+              <option value="todo">待办</option>
+              <option value="issue">已知问题</option>
+              <option value="reference">参考资料</option>
+              <option value="note">笔记</option>
+            </select>
+            <button id="bb-search" class="btn" type="button">检索</button>
+            <div class="spacer"></div>
+            <button class="btn primary" type="button" data-act="board-new">＋ 写入条目</button>
+          </div>
+          <div id="bb-list" class="list">
+            <div class="empty-box">
+              <div class="empty-mark">BLACKBOARD</div>
+              <div class="empty-title">黑板还是空的</div>
+              <div class="empty-hint">写入第一条简报或决策，让不同 Agent 在同一个上下文里协作。</div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ======================= 交接说明 ======================= -->
+      <section class="view" id="view-handoffs">
+        <header class="center-head">
+          <div class="kicker">HANDOFFS / 交接</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title sm">结构化交接</h1>
+              <p class="head-sub">做了什么 / 没做什么 / 遗留问题 / 下一步；人工可修正，成为后续的权威上下文。</p>
+            </div>
+          </div>
+        </header>
+
+        <section class="ops-card fill-card" aria-label="交接列表">
+          <div id="handoff-list" class="list">
+            <div class="empty-box">
+              <div class="empty-mark">HANDOFF</div>
+              <div class="empty-title">还没有交接记录</div>
+              <div class="empty-hint">Agent 结束一个任务时可以留下交接说明，下一位接手的 Agent 从这里继续。</div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ======================= 人工确认 ======================= -->
+      <section class="view" id="view-approvals">
+        <header class="center-head">
+          <div class="kicker">APPROVALS / 人工闸门</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title sm">人工确认队列</h1>
+              <p class="head-sub">危险操作、写冲突、验收失败与额度超限都会停在这里等你点头。</p>
+            </div>
+          </div>
+        </header>
+
+        <section class="ops-card fill-card" aria-label="审批列表">
+          <div id="approval-list" class="list">
+            <div class="empty-box">
+              <div class="empty-mark">APPROVALS</div>
+              <div class="empty-title">没有待确认的事项</div>
+              <div class="empty-hint">需要人工把关的动作会自动出现在这里，处理完即消失。</div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ======================= 版本快照 ======================= -->
+      <section class="view" id="view-snapshots">
+        <header class="center-head">
+          <div class="kicker">SNAPSHOTS / 快照</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title sm">版本快照</h1>
+              <p class="head-sub">每次快照都可回退、可对比；挑两个快照即可查看文件差异。</p>
+            </div>
+          </div>
+        </header>
+
+        <section class="ops-card fill-card" aria-label="快照管理">
+          <div class="toolbar">
+            <input id="snap-label" class="input input-grow" type="text" placeholder="快照标签（可选）" aria-label="快照标签" autocomplete="off" />
+            <button class="btn primary" type="button" data-act="snap-create">＋ 创建快照</button>
+            <div class="toolbar-sep"></div>
+            <select id="snap-a" class="select" title="快照 A" aria-label="快照 A">
+              <option value="">快照 A</option>
+            </select>
+            <select id="snap-b" class="select" title="快照 B" aria-label="快照 B">
+              <option value="">快照 B</option>
+            </select>
+            <button class="btn" type="button" data-act="snap-diff-two">对比 A ↔ B</button>
+          </div>
+          <div id="snap-list" class="list">
+            <div class="empty-box">
+              <div class="empty-mark">SNAPSHOT</div>
+              <div class="empty-title">还没有快照</div>
+              <div class="empty-hint">在关键节点创建一个快照，之后可以一键回退到这一刻。</div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ======================= Agent 引擎 ======================= -->
+      <section class="view" id="view-agents">
+        <header class="center-head">
+          <div class="kicker">AGENTS / 编队</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title sm">Agent 引擎</h1>
+              <p class="head-sub">清单来自 config/agents.json，改配置即可增删，无需改代码。</p>
+            </div>
+            <div class="head-actions">
+              <button class="btn" type="button" data-act="check-all">全部连通性检测</button>
+              <button class="btn ghost" type="button" data-act="edit-config-file" data-file="agents.json">编辑 agents.json</button>
+            </div>
+          </div>
+        </header>
+
+        <section class="ops-card fill-card" aria-label="Agent 列表">
+          <div id="agents-list" class="list">
+            <div class="empty-box">
+              <div class="empty-mark">AGENTS</div>
+              <div class="empty-title">还没有加载 Agent 清单</div>
+              <div class="empty-hint">检查 config/agents.json，或点上方「全部连通性检测」刷新状态。</div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ======================= 实时事件流 ======================= -->
+      <section class="view" id="view-live">
+        <header class="center-head">
+          <div class="kicker">LIVE / 实时事件</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title sm">实时事件流</h1>
+              <p class="head-sub">Agent 消息 / 思考 / 工具调用 / 任务状态（WebSocket 实时推送）。</p>
+            </div>
+            <div class="head-meta mono">WEBSOCKET</div>
+          </div>
+        </header>
+
+        <section class="ops-card live-card" aria-label="实时事件流">
+          <div class="live-runbar" id="live-runbar">
+            <span class="live-run-dot" aria-hidden="true"></span>
+            <div class="live-runbar-main">
+              <div class="live-run-title" id="live-run-title">等待任务开始…</div>
+              <div class="live-run-meta" id="live-run-meta">选择任务后可查看实时输出</div>
+            </div>
+            <span class="live-run-status is-idle" id="live-run-status">空闲</span>
+            <button class="live-jump" id="live-jump" type="button" hidden>回到最新</button>
+          </div>
+          <div class="toolbar">
+            <label class="field-label inline" for="live-task">任务</label>
+            <select id="live-task" class="select select-sm" aria-label="按任务过滤">
+              <option value="">全部任务</option>
+            </select>
+            <label class="check"><input type="checkbox" id="live-autoscroll" checked /> 自动滚动</label>
+            <div class="spacer"></div>
+            <button class="btn" type="button" data-act="live-clear">清空</button>
+          </div>
+          <div id="live-list" class="live-list stream stream-tall">
+            <div class="stream-empty mono">等待 WebSocket 事件…启动调度或执行任务后，这里会实时滚动 Agent 的输出。</div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ======================= 观测 / 审计 ======================= -->
+      <section class="view" id="view-observe">
+        <header class="center-head">
+          <div class="kicker">OBSERVE / 观测</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title sm">观测 / 审计</h1>
+              <p class="head-sub">成本、耗时、运行记录、产物与完整协作时间线，用于复盘与交付留痕。</p>
+            </div>
+            <div class="head-actions">
+              <button id="btn-export" class="btn primary" type="button">导出 Markdown</button>
+            </div>
+          </div>
+        </header>
+
+        <div class="grid-2">
+          <section class="ops-card" aria-label="成本汇总">
+            <div class="ops-card-head"><div class="ops-card-title">成本 / 耗时汇总</div></div>
+            <div id="stats" class="stats">
+              <div class="stat"><span class="stat-k">运行次数</span><span class="stat-v">0</span></div>
+              <div class="stat"><span class="stat-k">总耗时</span><span class="stat-v">0s</span></div>
+              <div class="stat"><span class="stat-k">Tokens</span><span class="stat-v">0</span></div>
+              <div class="stat"><span class="stat-k">成本</span><span class="stat-v">¥0</span></div>
+            </div>
+          </section>
+
+          <section class="ops-card" aria-label="运行记录">
+            <div class="ops-card-head">
+              <div class="ops-card-title">运行记录</div>
+              <div class="ops-card-hint">每次 Agent 调用</div>
+            </div>
+            <div id="runs" class="list">
+              <div class="empty-box compact">
+                <div class="empty-mark">RUNS</div>
+                <div class="empty-title">还没有运行记录</div>
+                <div class="empty-hint">启动调度后，每次 Agent 调用都会记录在这里。</div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <section class="ops-card" aria-label="项目产物">
+          <div class="ops-card-head">
+            <div class="ops-card-title">项目产物</div>
+            <div class="ops-card-hint">输入 / 输出产物（文件、片段、结构化记录）</div>
+            <div class="spacer"></div>
+            <select id="artifact-role" class="select select-sm" aria-label="产物角色">
+              <option value="">全部角色</option>
+              <option value="output">输出产物</option>
+              <option value="input">输入产物</option>
+            </select>
+          </div>
+          <div id="artifacts" class="list">
+            <div class="empty-box compact">
+              <div class="empty-mark">ARTIFACTS</div>
+              <div class="empty-title">还没有产物</div>
+              <div class="empty-hint">任务写出的文件与片段会登记在这里。</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="ops-card" aria-label="协作时间线">
+          <div class="ops-card-head">
+            <div class="ops-card-title">协作时间线</div>
+            <div class="ops-card-hint">事件按时间排序，可导出 Markdown</div>
+          </div>
+          <div id="timeline" class="list">
+            <div class="empty-box compact">
+              <div class="empty-mark">TIMELINE</div>
+              <div class="empty-title">时间线为空</div>
+              <div class="empty-hint">项目里的任务与事件会按时间顺序汇总到这里。</div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ======================= 配置 ======================= -->
+      <section class="view" id="view-config">
+        <header class="center-head">
+          <div class="kicker">CONFIG / 配置</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title sm">配置（无需改代码）</h1>
+              <p class="head-sub">Agent 清单、任务模板、路由与验收规则都在这里改；保存后立即生效。</p>
+            </div>
+            <div class="head-actions">
+              <button class="btn" type="button" data-act="config-reload">重新读取</button>
+              <button class="btn primary" type="button" data-act="config-save">保存并生效</button>
+            </div>
+          </div>
+        </header>
+
+        <section class="ops-card config-card" aria-label="配置编辑">
+          <div class="toolbar">
+            <label class="field-label inline" for="config-file">配置文件</label>
+            <select id="config-file" class="select select-file" aria-label="配置文件">
+              <option value="agents.json">agents.json — Agent 清单</option>
+              <option value="templates.json">templates.json — 任务模板</option>
+              <option value="routing.json">routing.json — 路由规则</option>
+              <option value="acceptance.json">acceptance.json — 验收规则</option>
+              <option value="policy.json">policy.json — 策略 / 额度</option>
+            </select>
+            <div class="spacer"></div>
+            <span id="config-dir" class="mono muted config-dir"></span>
+          </div>
+          <label class="sr-only" for="config-editor">配置内容（JSON）</label>
+          <textarea id="config-editor" class="textarea config-editor" spellcheck="false" aria-label="配置内容">{
+  "hint": "选择上方配置文件后，这里会显示 JSON 内容"
+}</textarea>
+        </section>
+      </section>
+
+      <!-- ======================= 系统维护 ======================= -->
+      <section class="view" id="view-system">
+        <header class="center-head">
+          <div class="kicker">SYSTEM / 运维</div>
+          <div class="head-row">
+            <div class="head-main">
+              <h1 class="display-title sm">系统维护</h1>
+              <p class="head-sub">存储盘点、一致性备份、数据库/事件链校验与保留清理。清理默认只预览，不删除。</p>
+            </div>
+            <div class="head-actions">
+              <button class="btn" type="button" data-act="system-refresh">刷新</button>
+              <button class="btn primary" type="button" data-act="system-backup">创建备份</button>
+            </div>
+          </div>
+        </header>
+
+        <section class="ops-card" aria-label="存储概览">
+          <div class="ops-card-head">
+            <div class="ops-card-title">存储概览</div>
+            <div class="ops-card-hint">数据库 / 运行证据 / 快照 / 日志 / 备份</div>
+            <div class="spacer"></div>
+            <button class="btn tiny" type="button" data-act="system-verify">完整性校验</button>
+            <button class="btn tiny" type="button" data-act="system-prune-preview">清理预览</button>
+            <button class="btn tiny danger" type="button" data-act="system-prune-apply">执行清理</button>
+          </div>
+          <div id="system-storage" class="stats">
+            <div class="stat"><span class="stat-k">数据库</span><span class="stat-v">—</span></div>
+            <div class="stat"><span class="stat-k">运行证据</span><span class="stat-v">—</span></div>
+            <div class="stat"><span class="stat-k">快照</span><span class="stat-v">—</span></div>
+            <div class="stat"><span class="stat-k">日志</span><span class="stat-v">—</span></div>
+            <div class="stat"><span class="stat-k">备份</span><span class="stat-v">—</span></div>
+          </div>
+        </section>
+
+        <div class="grid-2">
+          <section class="ops-card" aria-label="备份列表">
+            <div class="ops-card-head">
+              <div class="ops-card-title">数据库备份</div>
+              <div class="ops-card-hint">SQLite 在线备份，可被 CLI restore 使用</div>
+            </div>
+            <div id="system-backups" class="list">
+              <div class="empty-box compact"><div class="empty-mark">BACKUP</div><div class="empty-title">还没有备份</div></div>
+            </div>
+          </section>
+          <section class="ops-card" aria-label="最近日志">
+            <div class="ops-card-head">
+              <div class="ops-card-title">结构化日志</div>
+              <div class="ops-card-hint">最近 120 行 · JSON Lines</div>
+            </div>
+            <div id="system-logs" class="list compact mono">
+              <div class="empty-box compact"><div class="empty-mark">LOG</div><div class="empty-title">暂无日志</div></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ---------------------------- inspector 360 ---------------------------- -->
+    <aside class="inspector" id="inspector" aria-label="工作台状态">
+      <header class="inspector-head">
+        <div class="kicker">WORKBENCH STATUS</div>
+        <h2 class="inspector-title">工作台状态</h2>
+        <p class="inspector-sub">调度、Agent 编队与人工闸门</p>
+      </header>
+
+      <section class="inspector-section dispatch-card">
+        <div class="inspector-section-head">
+          <span class="inspector-section-title">调度</span>
+          <span class="mono muted" id="inspector-mode">IDLE</span>
+        </div>
+        <button type="button" id="btn-run" class="btn primary full">▶ 启动调度</button>
+        <div class="inspector-btn-row">
+          <button type="button" id="btn-stop" class="btn" title="停止当前项目：终止在跑的 Agent 调用并取消其任务（只影响本项目）">■ 停止</button>
+          <button type="button" id="btn-recover" class="btn" title="保守恢复：按 PID / 心跳判存活，只把确实已死的任务标为中断">↻ 恢复</button>
+        </div>
+        <button type="button" id="btn-force-recover" class="btn danger full"
+          title="强制恢复（破坏性）：无视存活判定，把仍有调度方在跑的任务也判为中断，需二次确认">⇉ 强制恢复</button>
+      </section>
+
+      <section class="inspector-section">
+        <div class="inspector-section-head">
+          <span class="inspector-section-title">Agent 编队</span>
+          <span class="mono muted">2 × 2</span>
+        </div>
+        <div class="agent-grid" id="inspector-agents">
+          <div class="agent-tile is-on">
+            <span class="agent-avatar">CX</span>
+            <span class="agent-name"><i class="agent-dot-state"></i>Codex</span>
+            <span class="agent-role">acp · lead</span>
+          </div>
+          <div class="agent-tile is-on">
+            <span class="agent-avatar">CC</span>
+            <span class="agent-name"><i class="agent-dot-state"></i>Claude Code</span>
+            <span class="agent-role">acp · worker</span>
+          </div>
+          <div class="agent-tile is-off">
+            <span class="agent-avatar">OC</span>
+            <span class="agent-name"><i class="agent-dot-state"></i>OpenCode</span>
+            <span class="agent-role">cli · worker</span>
+          </div>
+          <div class="agent-tile is-off">
+            <span class="agent-avatar">DS</span>
+            <span class="agent-name"><i class="agent-dot-state"></i>DSH</span>
+            <span class="agent-role">cli · worker</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="inspector-section">
+        <div class="inspector-section-head">
+          <span class="inspector-section-title">待审批</span>
+          <span class="mono muted">APPROVALS</span>
+        </div>
+        <div class="list compact" id="inspector-approvals">
+          <div class="empty-box compact">
+            <div class="empty-mark">CLEAR</div>
+            <div class="empty-title">没有待确认</div>
+            <div class="empty-hint">危险操作会在这里等你点头。</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="inspector-section">
+        <div class="inspector-section-head">
+          <span class="inspector-section-title">运行中</span>
+          <span class="mono muted">RUNNING</span>
+        </div>
+        <div class="list compact" id="inspector-running">
+          <div class="empty-box compact">
+            <div class="empty-mark">IDLE</div>
+            <div class="empty-title">当前没有任务在跑</div>
+            <div class="empty-hint">点「启动调度」把待执行任务派给编队。</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="inspector-section stream-section">
+        <div class="inspector-section-head">
+          <span class="inspector-section-title">实时事件</span>
+          <span class="mono muted">WS</span>
+        </div>
+        <div class="stream" id="inspector-stream">
+          <div class="stream-empty mono">等待 WebSocket 事件…</div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- ============================ status strip 28px ============================ -->
+  <footer class="statusstrip" aria-label="操作台状态条">
+    <span class="status-item" id="status-ws"><i class="dot"></i>WS / LINK STANDBY</span>
+    <span class="status-sep" aria-hidden="true">·</span>
+    <span class="status-item" id="status-agents">AGENTS / FLEET 0/0</span>
+    <span class="status-sep" aria-hidden="true">·</span>
+    <span class="status-item" id="status-tasks">TASKS / QUEUE 0/0</span>
+    <span class="status-sep" aria-hidden="true">·</span>
+    <span class="status-item" id="status-approvals">APPROVALS / GATES 0</span>
+    <span class="spacer"></span>
+    <span class="status-item" id="status-autopilot">AUTOPILOT / MANUAL</span>
+    <span class="status-sep" aria-hidden="true">·</span>
+    <span class="status-item mono">LOCAL NODE · UTF-8 · OPS CONSOLE</span>
+  </footer>
+</div>
+
+<!-- ============================ 覆盖层 ============================ -->
+<aside class="drawer" id="drawer" aria-label="详情抽屉">
+  <div class="drawer-head">
+    <h2 id="drawer-title">详情</h2>
+    <button id="drawer-close" class="icon-btn" type="button" aria-label="关闭抽屉">✕</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+
+<div class="modal-mask" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modal-title">操作</h2>
+      <button class="icon-btn" type="button" data-act="modal-close" aria-label="关闭弹窗">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

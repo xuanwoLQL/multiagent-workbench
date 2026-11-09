@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Compile all modules
+        run: python -m compileall -q multiagent
+      - name: Unit + integration tests (fake agents, no model quota)
+        run: python -m pytest -o addopts= -q
+      - name: Doctor (config + database integrity, no Agent handshake)
+        run: python -m multiagent doctor
+      - name: Requirements traceability
+        run: python scripts/verify_requirements.py
+
+  package:
+    name: desktop backend freeze (smoke)
+    runs-on: windows-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]" pyinstaller
+      - name: Build frozen backend
+        run: python scripts/build_backend.py
+      - name: Smoke frozen backend
+        run: |
+          $exe = Get-ChildItem -Recurse -Filter multiagent-backend.exe desktop/backend-dist | Select-Object -First 1
+          if (-not $exe) { throw "frozen backend not found" }
+          & $exe.FullName --help

@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "kind_templates": {
+    "code": {
+      "checks": ["outputs_exist", "file_modified", "outputs_nonempty", "verify_command"],
+      "min_bytes": 1,
+      "timeout_sec": 2400,
+      "max_attempts": 3
+    },
+    "doc": {
+      "checks": ["outputs_exist", "outputs_nonempty"],
+      "min_bytes": 32,
+      "timeout_sec": 2400,
+      "max_attempts": 3
+    },
+    "ppt": {
+      "checks": ["outputs_exist", "outputs_nonempty"],
+      "min_bytes": 1024,
+      "timeout_sec": 2400,
+      "max_attempts": 3
+    },
+    "diagrams": {
+      "checks": ["outputs_exist", "outputs_nonempty"],
+      "min_bytes": 64,
+      "timeout_sec": 1800,
+      "max_attempts": 3
+    },
+    "web": {
+      "checks": ["outputs_exist", "outputs_nonempty"],
+      "min_bytes": 64,
+      "timeout_sec": 2400,
+      "max_attempts": 3
+    },
+    "review": {
+      "checks": ["no_writes", "handoff_present"],
+      "timeout_sec": 1800,
+      "max_attempts": 2
+    },
+    "research": {
+      "checks": ["outputs_exist", "outputs_nonempty"],
+      "min_bytes": 1,
+      "timeout_sec": 1800,
+      "max_attempts": 3
+    },
+    "data": {
+      "checks": ["outputs_exist", "file_modified", "outputs_nonempty"],
+      "min_bytes": 1,
+      "timeout_sec": 1800,
+      "max_attempts": 3
+    },
+    "generic": {
+      "checks": ["file_modified", "handoff_present"],
+      "timeout_sec": 1800,
+      "max_attempts": 3
+    }
+  },
+  "rules": {
+    "file-exists": [
+      {
+        "type": "file_exists",
+        "path": "{{target}}"
+      }
+    ],
+    "file-changed": [
+      {
+        "type": "file_modified"
+      }
+    ],
+    "report-written": [
+      {
+        "type": "file_exists",
+        "path": "{{target}}"
+      },
+      {
+        "type": "content_contains",
+        "path": "{{target}}",
+        "text": "{{contains}}"
+      }
+    ],
+    "no-writes": [
+      {
+        "type": "no_writes"
+      }
+    ],
+    "review-readonly": [
+      {
+        "type": "no_writes"
+      },
+      {
+        "type": "handoff_present"
+      }
+    ],
+    "manual-confirm": [
+      {
+        "type": "manual_confirm"
+      }
+    ],
+    "exit-zero": [
+      {
+        "type": "command_exit_zero",
+        "command": "{{command}}"
+      }
+    ]
+  }
+}

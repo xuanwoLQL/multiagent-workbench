@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "strategy": "first_available",
+  "rules": [
+    {
+      "when": {
+        "kind": "code"
+      },
+      "order": [
+        "codex",
+        "opencode",
+        "dsh",
+        "claude"
+      ]
+    },
+    {
+      "when": {
+        "kind": "doc"
+      },
+      "order": [
+        "claude",
+        "codex",
+        "dsh",
+        "opencode"
+      ]
+    },
+    {
+      "when": {
+        "kind": "research"
+      },
+      "order": [
+        "claude",
+        "dsh",
+        "codex",
+        "opencode"
+      ]
+    },
+    {
+      "when": {
+        "kind": "data"
+      },
+      "order": [
+        "opencode",
+        "dsh",
+        "codex",
+        "claude"
+      ]
+    },
+    {
+      "when": {
+        "kind": "review"
+      },
+      "order": [
+        "claude",
+        "codex",
+        "dsh",
+        "opencode"
+      ]
+    },
+    {
+      "when": {
+        "role": "reviewer"
+      },
+      "order": [
+        "claude",
+        "codex",
+        "dsh",
+        "opencode"
+      ]
+    },
+    {
+      "when": {
+        "tag": "research"
+      },
+      "order": [
+        "claude",
+        "dsh",
+        "opencode",
+        "codex"
+      ]
+    },
+    {
+      "when": {
+        "tag": "refactor"
+      },
+      "order": [
+        "codex",
+        "opencode",
+        "dsh",
+        "claude"
+      ]
+    }
+  ],
+  "fallbacks": [
+    "opencode",
+    "codex",
+    "claude",
+    "dsh",
+    "human"
+  ]
+}

@@ -1,0 +1,178 @@
+{
+  "tasks": [
+    {
+      "key": "design",
+      "title": "设计 Atlas 知识库与工单平台（产品/API/数据模型）",
+      "kind": "research",
+      "agent": "claude",
+      "brief": "为当前工作区设计一个可直接运行的「团队知识库 + 工单协作」Web 应用 Atlas。硬性约束：\n1) 运行时零第三方依赖：后端只用 Node.js 26 内置模块（node:http、node:sqlite、node:crypto、node:fs），前端零构建（原生 HTML/CSS/ESM），不引入 npm 包、不依赖 CDN；\n2) 数据落 SQLite（node:sqlite 的 DatabaseSync），开启外键与 WAL；\n3) 角色：admin/editor/viewer；本地账号密码登录（scrypt 哈希 + HttpOnly Cookie 会话），所有写接口做 CSRF/Origin 校验；\n4) 知识库：Markdown 笔记 CRUD、标签、版本历史、FTS5 全文检索、软删除；\n5) 工单：状态机 open → in_progress → resolved → closed（可 reopen），优先级、指派、评论、审计日志；\n6) 审计：所有写操作记录 actor/action/entity/时间，可按实体过滤；\n7) 前端：登录页、笔记列表/编辑器/搜索、工单看板、详情抽屉、响应式布局、空态/错误态。\n\n产出 docs/DESIGN.md 与 docs/API.md：目标与非目标、目录/模块划分（server.js、src/db.js、src/auth.js、src/http.js、src/notes.js、src/tickets.js、src/audit.js、src/validate.js、web/*）、数据库表与索引（含 FTS5 触发器）、每个 REST 接口的 method/path/请求/响应/权限/错误码、会话与 CSRF 方案、状态机迁移表、验收命令与里程碑。不要写实现代码，只写可执行的设计与接口契约。",
+      "outputs": ["docs/DESIGN.md", "docs/API.md"],
+      "acceptance": [
+        {"type": "file_exists", "path": "docs/DESIGN.md"},
+        {"type": "file_exists", "path": "docs/API.md"},
+        {"type": "content_contains", "path": "docs/DESIGN.md", "text": "SQLite"},
+        {"type": "content_contains", "path": "docs/DESIGN.md", "text": "状态机"},
+        {"type": "content_contains", "path": "docs/API.md", "text": "/api/"}
+      ],
+      "timeout_sec": 1800
+    },
+    {
+      "key": "backend-core",
+      "title": "实现 Atlas 后端核心：数据库/鉴权/笔记/搜索/审计",
+      "kind": "code",
+      "agent": "codex",
+      "depends_on": ["design"],
+      "brief": "按 docs/DESIGN.md 与 docs/API.md 实现零依赖 Node.js 后端核心。必须产出：\n- package.json（type=module、scripts: start/test/check，无 dependencies）；\n- server.js：读取 PORT/HOST，装配 http 服务与静态文件，优雅关闭；\n- src/db.js：node:sqlite DatabaseSync，PRAGMA foreign_keys/WAL，版本化 schema 迁移，建表与 FTS5 触发器；\n- src/http.js：JSON body 解析（1MB 上限）、统一错误信封、Cookie 解析、静态文件 MIME/缓存、安全响应头；\n- src/auth.js：scrypt 密码哈希、会话创建/校验/过期、角色校验、HttpOnly/SameSite=Lax Cookie、登录失败限速；\n- src/validate.js：字段校验与统一 400；\n- src/notes.js：笔记 CRUD、标签、软删除、版本历史、FTS5 搜索、分页；\n- src/audit.js：写操作审计与查询；\n- src/seed.js 或启动时 seed：首次启动创建 admin（密码从 ADMIN_PASSWORD 读取，缺省仅打印一次性随机密码）；\n- tests/core.test.js：node:test + node:assert，覆盖迁移、登录/权限、笔记 CRUD、版本、搜索、审计。\n\n要求：所有 SQL 使用参数绑定；不拼接用户输入；所有写接口校验 Origin/Sec-Fetch-Site；错误不泄漏堆栈；node --check 全部 JS 通过；node --test 通过。不要实现工单模块（下一条任务负责），但要在 server.js 预留装配点。",
+      "write_scope": ["package.json", "server.js", "src/**", "tests/**", "scripts/**", "data/**"],
+      "outputs": ["package.json", "server.js", "src/db.js", "src/auth.js", "src/notes.js", "src/audit.js", "tests/core.test.js"],
+      "acceptance": [
+        {"type": "file_exists", "path": "package.json"},
+        {"type": "file_exists", "path": "src/db.js"},
+        {"type": "file_exists", "path": "src/auth.js"},
+        {"type": "file_exists", "path": "src/notes.js"},
+        {"type": "file_exists", "path": "tests/core.test.js"},
+        {"type": "command_exit_zero", "command": "node --check server.js", "timeout": 60},
+        {"type": "command_exit_zero", "command": "node --check src/db.js", "timeout": 60},
+        {"type": "command_exit_zero", "command": "node --check src/auth.js", "timeout": 60},
+        {"type": "command_exit_zero", "command": "node --check src/notes.js", "timeout": 60},
+        {"type": "command_exit_zero", "command": "node --test tests/core.test.js", "timeout": 180}
+      ],
+      "timeout_sec": 2400
+    },
+    {
+      "key": "tickets",
+      "title": "实现 Atlas 工单模块：状态机/评论/指派/审计",
+      "kind": "code",
+      "agent": "opencode",
+      "depends_on": ["backend-core"],
+      "brief": "在已有后端上实现工单模块，遵守 docs/API.md 契约：\n- src/tickets.js：工单 CRUD、状态机 open→in_progress→resolved→closed、reopen、优先级、assignee、标签、评论、分页与过滤；非法状态迁移返回 409；\n- 权限：viewer 只读；editor 可创建/评论/推进自己可见的工单；admin 可指派/关闭/删除；\n- 所有写操作写 audit（src/audit.js）；\n- 更新 server.js 装配路由；\n- tests/tickets.test.js：node:test，覆盖状态机合法/非法迁移、权限矩阵、评论、指派、审计、404/409/403。\n\n要求：参数绑定；不破坏已有笔记测试；node --check 全部 JS；node --test 通过。",
+      "write_scope": ["src/**", "server.js", "tests/**"],
+      "outputs": ["src/tickets.js", "tests/tickets.test.js"],
+      "acceptance": [
+        {"type": "file_exists", "path": "src/tickets.js"},
+        {"type": "file_exists", "path": "tests/tickets.test.js"},
+        {"type": "content_contains", "path": "src/tickets.js", "text": "in_progress"},
+        {"type": "command_exit_zero", "command": "node --check src/tickets.js", "timeout": 60},
+        {"type": "command_exit_zero", "command": "node --test tests/tickets.test.js", "timeout": 180}
+      ],
+      "timeout_sec": 2400
+    },
+    {
+      "key": "frontend",
+      "title": "实现 Atlas 前端：登录/笔记/搜索/工单看板",
+      "kind": "code",
+      "agent": "claude",
+      "depends_on": ["design"],
+      "brief": "按 docs/API.md 实现零构建前端（web/ 下原生 HTML/CSS/ESM，无 CDN、无 npm）：\n- web/index.html：登录页与应用壳（侧栏、顶部栏、主区、抽屉、Toast）；\n- web/styles.css：企业级简洁风格、响应式（≥1280 / 768-1279 / <768）、空态/错误态/加载态、可访问性焦点；\n- web/app.js：hash 路由（#/notes、#/notes/:id、#/tickets、#/tickets/:id、#/audit）、fetch 封装（401 跳登录、错误 Toast）、登录/登出；\n- web/notes.js：笔记列表、Markdown 编辑器（纯文本 textarea + 预览，自己做最小安全转义）、标签、版本历史、FTS 搜索；\n- web/tickets.js：看板四列、创建/详情抽屉、评论、状态推进按钮、指派（admin）；\n- web/markdown.js：安全的极简 Markdown 渲染（先转义 HTML，再处理标题/列表/代码/链接），禁止 innerHTML 注入未转义内容；\n- 所有 API 调用走相对路径 /api，不硬编码端口。\n\n要求：node --check 全部前端 JS；页面在无后端时应显示明确错误而不是白屏；不引入构建步骤。",
+      "write_scope": ["web/**"],
+      "outputs": ["web/index.html", "web/styles.css", "web/app.js", "web/notes.js", "web/tickets.js", "web/markdown.js"],
+      "acceptance": [
+        {"type": "file_exists", "path": "web/index.html"},
+        {"type": "file_exists", "path": "web/app.js"},
+        {"type": "file_exists", "path": "web/notes.js"},
+        {"type": "file_exists", "path": "web/tickets.js"},
+        {"type": "content_contains", "path": "web/index.html", "text": "tickets"},
+        {"type": "command_exit_zero", "command": "node --check web/app.js", "timeout": 60},
+        {"type": "command_exit_zero", "command": "node --check web/notes.js", "timeout": 60},
+        {"type": "command_exit_zero", "command": "node --check web/tickets.js", "timeout": 60},
+        {"type": "command_exit_zero", "command": "node --check web/markdown.js", "timeout": 60}
+      ],
+      "timeout_sec": 2400
+    },
+    {
+      "key": "frontend-integration",
+      "title": "联调前端与真实 API：登录/笔记/工单全链路",
+      "kind": "code",
+      "agent": "opencode",
+      "depends_on": ["frontend", "tickets"],
+      "brief": "读取后端实际路由与 docs/API.md，联调 web/ 前端：\n- 修正接口路径/字段/错误码不一致；\n- 登录后加载笔记与工单，401 自动回登录；\n- 笔记保存/搜索/版本；工单创建/评论/状态推进/指派；\n- 所有不可信内容经 markdown.js 转义；\n- 增加 web/dev-check.mjs（零依赖）：静态检查 index.html 引用的脚本存在、app.js 不含 CDN/硬编码 localhost、关键 data-act 存在；\n- 如后端契约有缺口，只做最小兼容修正（不要重写模块）。\n\n要求：node --check 全部前端 JS；node web/dev-check.mjs 通过；不破坏后端 node --test。",
+      "write_scope": ["web/**"],
+      "outputs": ["web/dev-check.mjs"],
+      "acceptance": [
+        {"type": "file_exists", "path": "web/dev-check.mjs"},
+        {"type": "command_exit_zero", "command": "node web/dev-check.mjs", "timeout": 120},
+        {"type": "command_exit_zero", "command": "node --check web/app.js", "timeout": 60}
+      ],
+      "timeout_sec": 1800
+    },
+    {
+      "key": "tests",
+      "title": "补齐 Atlas 集成测试与冒烟脚本",
+      "kind": "code",
+      "agent": "codex",
+      "depends_on": ["backend-core", "tickets", "frontend-integration"],
+      "brief": "为 Atlas 补齐可离线运行的测试与冒烟脚本，并修复测试暴露的真实缺陷：\n- tests/api.test.js：启动真实 http 服务（随机端口/临时 DB），覆盖登录、CSRF/Origin、笔记 CRUD/版本/搜索、工单状态机/权限、审计、401/403/404/409；\n- tests/frontend.test.js：用 node:test 对 markdown.js 做 XSS/转义/链接安全测试；\n- scripts/smoke.mjs：启动服务→登录→创建笔记→搜索→创建工单→推进状态→评论→退出，输出 PASS/FAIL，失败 process.exitCode=1；\n- package.json 增加 test/smoke/check 脚本；\n- 发现实现缺陷直接修 src/（保持公开接口），不要改测试迁就错误实现。\n\n要求：node --test 全绿；node scripts/smoke.mjs 输出 PASS；不引入依赖。",
+      "write_scope": ["tests/**", "scripts/**", "src/**", "package.json", "server.js"],
+      "outputs": ["tests/api.test.js", "tests/frontend.test.js", "scripts/smoke.mjs"],
+      "acceptance": [
+        {"type": "file_exists", "path": "tests/api.test.js"},
+        {"type": "file_exists", "path": "scripts/smoke.mjs"},
+        {"type": "command_exit_zero", "command": "node --test tests/api.test.js", "timeout": 240},
+        {"type": "command_exit_zero", "command": "node scripts/smoke.mjs", "timeout": 240},
+        {"type": "command_output_contains", "command": "node scripts/smoke.mjs", "text": "PASS", "timeout": 240}
+      ],
+      "timeout_sec": 2400
+    },
+    {
+      "key": "docs",
+      "title": "完成 Atlas 交付文档与运行脚本",
+      "kind": "doc",
+      "agent": "claude",
+      "depends_on": ["tests"],
+      "brief": "基于实际代码与测试完成交付文档：\n- README.md：项目简介、架构、快速开始（node server.js，默认端口 3000，ADMIN_PASSWORD 首次登录）、角色与权限、API 概览、测试/冒烟命令、目录结构、已知限制；\n- docs/API.md：校准为实际实现（方法/路径/权限/错误码/示例）；\n- docs/QA.md：手工验收清单（登录、笔记 CRUD、搜索、版本、工单四状态、评论、指派、审计、401/403、响应式、空态/错误态）与本次实际验证结果；\n- docs/OPERATIONS.md：数据备份/恢复（data/atlas.sqlite3）、日志、端口/环境变量、升级与回滚；\n- run.ps1 与 run.sh：设置 PORT/ADMIN_PASSWORD 并启动；\n- Dockerfile：node:26-alpine，暴露 3000，数据卷 /app/data。\n\n要求：文档中的命令必须真实可执行；不写不存在的功能；不要修改 src/。",
+      "write_scope": ["README.md", "docs/**", "run.ps1", "run.sh", "Dockerfile", ".dockerignore"],
+      "outputs": ["README.md", "docs/QA.md", "docs/OPERATIONS.md", "run.ps1", "Dockerfile"],
+      "acceptance": [
+        {"type": "file_exists", "path": "README.md"},
+        {"type": "file_exists", "path": "docs/QA.md"},
+        {"type": "file_exists", "path": "docs/OPERATIONS.md"},
+        {"type": "file_exists", "path": "Dockerfile"},
+        {"type": "content_contains", "path": "README.md", "text": "ADMIN_PASSWORD"},
+        {"type": "content_contains", "path": "docs/QA.md", "text": "工单"}
+      ],
+      "timeout_sec": 1800
+    },
+    {
+      "key": "review",
+      "title": "只读审阅 Atlas：安全/正确性/可运维性",
+      "kind": "review",
+      "agent": "claude",
+      "depends_on": ["tests", "docs", "frontend-integration"],
+      "brief": "以只读方式审阅当前工作区，重点：\n1) SQL 注入/路径穿越/XSS/CSRF/会话固定/权限绕过；\n2) 状态机并发（两个请求同时推进）、软删除与唯一约束、FTS 索引一致性；\n3) 密码哈希参数、Cookie 属性、登录限速、错误信息泄漏；\n4) 前端错误态/空态/401 处理、markdown 渲染 XSS；\n5) 备份/恢复、日志、优雅关闭、端口占用；\n6) 测试是否覆盖关键路径，是否有「测试跟着错误实现走」。\n不要修改任何文件。把结论写进结构化交接：did、not_done、open_issues（P0/P1/P2）、next_steps；给出具体文件:行号与可执行修复建议。",
+      "acceptance_ref": "review-readonly",
+      "timeout_sec": 1800
+    },
+    {
+      "key": "fix",
+      "title": "按审阅意见修复并完成最终加固",
+      "kind": "code",
+      "agent": "codex",
+      "depends_on": ["review"],
+      "brief": "读取审阅交接，逐条处理 open_issues：P0 必须修，P1 尽量修，P2 记录取舍。要求：\n- 修复后 node --test 全绿、node scripts/smoke.mjs PASS；\n- 补回归测试覆盖每个修复；\n- 不引入第三方依赖；\n- 更新 README/docs/QA.md 中受影响的说明；\n- 最后运行 node --check 关键文件。",
+      "write_scope": ["**"],
+      "outputs": ["tests/fix-regressions.test.js"],
+      "acceptance": [
+        {"type": "command_exit_zero", "command": "node --test", "timeout": 300},
+        {"type": "command_exit_zero", "command": "node scripts/smoke.mjs", "timeout": 240},
+        {"type": "command_output_contains", "command": "node scripts/smoke.mjs", "text": "PASS", "timeout": 240}
+      ],
+      "timeout_sec": 2400
+    },
+    {
+      "key": "final-qa",
+      "title": "最终只读验收：测试/冒烟/交付完整性",
+      "kind": "review",
+      "agent": "dsh",
+      "depends_on": ["fix"],
+      "brief": "只读最终验收（不要修改工作区文件）：\n1) 运行 node --test、node scripts/smoke.mjs、node --check server.js web/app.js；\n2) 核对 README/docs/API.md/docs/QA.md 与实际路由/命令一致；\n3) 核对零第三方依赖（package.json 无 dependencies）与零 CDN；\n4) 检查 data/ 不会被误提交（.gitignore）；\n5) 把实际命令、退出码、关键输出与剩余风险写入结构化交接。若发现 P0 问题，在 open_issues 明确列出并给出复现命令。",
+      "acceptance": [
+        {"type": "command_exit_zero", "command": "node --test", "timeout": 300},
+        {"type": "command_exit_zero", "command": "node scripts/smoke.mjs", "timeout": 240},
+        {"type": "command_output_contains", "command": "node scripts/smoke.mjs", "text": "PASS", "timeout": 240},
+        {"type": "handoff_present"}
+      ],
+      "read_only": true,
+      "timeout_sec": 1800
+    }
+  ]
+}

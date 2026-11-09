@@ -1,0 +1,192 @@
+{
+  "tasks": [
+    {
+      "key": "domain",
+      "title": "Atlas：领域模型、SQLite schema 与仓储层",
+      "kind": "code",
+      "agent": "codex",
+      "isolation": "worktree",
+      "timeout_sec": 2400,
+      "brief": "在现有 Atlas monorepo（Node 26 + node:sqlite + Express + Vite React）中补齐领域层。先读 docs/PRD.md、docs/API-CONTRACT.md、apps/server/src/db.ts、packages/shared/src/index.ts。\n\n要做的事：\n1) 扩展 packages/shared/src/index.ts：Article/Ticket/Comment/User/AuditEntry/Page/ApiError 及输入 DTO 类型、状态枚举、状态机常量。\n2) apps/server/src/db.ts：完整 schema（users/articles/article_versions/tickets/tags/article_tags/ticket_tags/comments/sessions/audit_log + 必要索引），外键与 WAL 已开；加 migrate 版本表。\n3) 新建 apps/server/src/repo/：users.ts、articles.ts、tickets.ts、comments.ts、audit.ts、tags.ts。只做参数绑定 SQL，返回 typed 行；分页工具。\n4) apps/server/src/seed.ts：创建 admin（邮箱 admin@atlas.local，密码取自 ADMIN_PASSWORD 或打印一次性随机密码）、2 个成员、6 篇文章、6 个工单、评论与标签。\n5) apps/server/test/repo.test.ts：node:test，覆盖创建/查询/分页/标签/软删除/审计。\n\n禁止：不要改 apps/web/**；不要改 apps/server/src/app.ts（其他任务负责路由）。\n验收：npm --workspace apps/server run typecheck 通过；node --test apps/server/test/repo.test.ts 通过；apps/server/src/seed.ts 可执行。",
+      "write_scope": [
+        "packages/shared/src/**",
+        "apps/server/src/db.ts",
+        "apps/server/src/seed.ts",
+        "apps/server/src/repo/**",
+        "apps/server/test/repo.test.ts"
+      ],
+      "outputs": ["apps/server/src/repo/articles.ts", "apps/server/src/seed.ts", "apps/server/test/repo.test.ts"],
+      "acceptance": [
+        {"type": "file_exists", "path": "apps/server/src/repo/articles.ts"},
+        {"type": "file_exists", "path": "apps/server/src/seed.ts"},
+        {"type": "file_exists", "path": "apps/server/test/repo.test.ts"},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/server run typecheck", "timeout": 180},
+        {"type": "command_exit_zero", "command": "node --test --import tsx apps/server/test/repo.test.ts", "timeout": 240}
+      ]
+    },
+    {
+      "key": "auth",
+      "title": "Atlas：认证、会话与权限中间件",
+      "kind": "code",
+      "agent": "opencode",
+      "isolation": "worktree",
+      "depends_on": ["domain"],
+      "timeout_sec": 2400,
+      "brief": "在 Atlas 后端实现认证与权限，遵守 docs/API-CONTRACT.md。\n\n新建 apps/server/src/auth/：password.ts（scrypt 哈希/校验，timingSafeEqual）、sessions.ts（随机 token、HttpOnly Cookie atlas_session、过期与滑动续期、登出）、middleware.ts（requireAuth、requireRole、CSRF/Origin 校验：写请求必须同源或带 x-atlas-csrf）、routes.ts（POST /api/auth/login|logout，GET /api/auth/me，admin 用户管理 GET/POST /api/users）。\n修改 apps/server/src/app.ts 装配 auth 路由与中间件；修改 apps/server/src/index.ts 仅在必要时。\n加 apps/server/test/auth.test.ts：登录成功/失败、限速（10 次/分钟）、Cookie 属性、未登录 401、member 访问 admin 接口 403、登出失效。\n\n禁止：不要改 apps/web/**、packages/shared/**、repo 层。\n验收：npm --workspace apps/server run typecheck；node --test --import tsx apps/server/test/auth.test.ts 通过。",
+      "write_scope": ["apps/server/src/auth/**", "apps/server/src/app.ts", "apps/server/src/index.ts", "apps/server/test/auth.test.ts"],
+      "outputs": ["apps/server/src/auth/routes.ts", "apps/server/src/auth/middleware.ts", "apps/server/test/auth.test.ts"],
+      "acceptance": [
+        {"type": "file_exists", "path": "apps/server/src/auth/routes.ts"},
+        {"type": "file_exists", "path": "apps/server/src/auth/middleware.ts"},
+        {"type": "file_exists", "path": "apps/server/test/auth.test.ts"},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/server run typecheck", "timeout": 180},
+        {"type": "command_exit_zero", "command": "node --test --import tsx apps/server/test/auth.test.ts", "timeout": 240}
+      ]
+    },
+    {
+      "key": "articles",
+      "title": "Atlas：知识库 API（文章/标签/版本/检索）",
+      "kind": "code",
+      "agent": "codex",
+      "isolation": "worktree",
+      "depends_on": ["auth"],
+      "timeout_sec": 2400,
+      "brief": "实现文章域 API，遵守 docs/API-CONTRACT.md。\n\n新建 apps/server/src/articles/routes.ts：列表（q/tag/status/分页）、详情、创建、更新（仅作者或 admin）、归档/删除、版本列表、文章评论 GET/POST、全局 /api/search（文章+工单各 20 条）。slug 唯一化；标签 upsert；写操作写 audit_log；所有输入用 zod 校验，错误统一 {error:{code,message,details}}。\n在 apps/server/src/app.ts 装配。\n加 apps/server/test/articles.test.ts：CRUD、权限、分页、标签过滤、检索、版本、评论、404/403/400。\n\n禁止：不要改 apps/web/**、tickets/**、auth/**、repo/**。\n验收：typecheck + node --test --import tsx apps/server/test/articles.test.ts。",
+      "write_scope": ["apps/server/src/articles/**", "apps/server/src/app.ts", "apps/server/test/articles.test.ts"],
+      "outputs": ["apps/server/src/articles/routes.ts", "apps/server/test/articles.test.ts"],
+      "acceptance": [
+        {"type": "file_exists", "path": "apps/server/src/articles/routes.ts"},
+        {"type": "file_exists", "path": "apps/server/test/articles.test.ts"},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/server run typecheck", "timeout": 180},
+        {"type": "command_exit_zero", "command": "node --test --import tsx apps/server/test/articles.test.ts", "timeout": 240}
+      ]
+    },
+    {
+      "key": "tickets",
+      "title": "Atlas：工单 API（状态机/指派/评论）",
+      "kind": "code",
+      "agent": "opencode",
+      "isolation": "worktree",
+      "depends_on": ["articles"],
+      "timeout_sec": 2400,
+      "brief": "实现工单域 API，遵守 docs/API-CONTRACT.md。\n\n新建 apps/server/src/tickets/routes.ts：列表（status/priority/assignee/q/分页）、详情（含评论）、创建、更新、状态机 open→in_progress→resolved→closed，reopen（admin 或 reporter），非法迁移 409；指派；评论 POST/DELETE（软删除）；标签；写审计。\n在 apps/server/src/app.ts 装配。\n加 apps/server/test/tickets.test.ts：状态机合法/非法、权限矩阵、评论、指派、过滤、审计、404/409。\n\n禁止：不要改 apps/web/**、articles/**、auth/**、repo/**。\n验收：typecheck + node --test --import tsx apps/server/test/tickets.test.ts。",
+      "write_scope": ["apps/server/src/tickets/**", "apps/server/src/app.ts", "apps/server/test/tickets.test.ts"],
+      "outputs": ["apps/server/src/tickets/routes.ts", "apps/server/test/tickets.test.ts"],
+      "acceptance": [
+        {"type": "file_exists", "path": "apps/server/src/tickets/routes.ts"},
+        {"type": "file_exists", "path": "apps/server/test/tickets.test.ts"},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/server run typecheck", "timeout": 180},
+        {"type": "command_exit_zero", "command": "node --test --import tsx apps/server/test/tickets.test.ts", "timeout": 240}
+      ]
+    },
+    {
+      "key": "api-tests",
+      "title": "Atlas：后端集成测试与契约校验",
+      "kind": "code",
+      "agent": "claude",
+      "isolation": "worktree",
+      "depends_on": ["tickets"],
+      "timeout_sec": 2400,
+      "brief": "为 Atlas 后端补端到端集成测试（真实 HTTP，非 mock）。\n\n新建 apps/server/test/integration.test.ts：\n- 起一个内存库 + createApp，监听随机端口；\n- 登录 admin 与 member，携带 Cookie 走完整流程；\n- 文章：创建→列表→检索→更新→版本→评论→归档；\n- 工单：创建→指派→推进→评论→reopen→关闭；\n- 权限：member 调 admin 接口 403，未登录 401；\n- 错误信封：400/404/409/401 都有 {error:{code,message}}；\n- 分页边界；输入校验（超长 title、非法 status、非法迁移）。\n再建 apps/server/test/contract.test.ts 校验 docs/API-CONTRACT.md 中列出的每个 method+path 都能路由到（读 markdown 正则抽取）。\n修 small bugs 时只改 apps/server/src 内必要文件。\n\n禁止：不要改 apps/web/**。\n验收：npm --workspace apps/server test 全绿；typecheck 通过。",
+      "write_scope": ["apps/server/test/**", "apps/server/src/**"],
+      "outputs": ["apps/server/test/integration.test.ts", "apps/server/test/contract.test.ts"],
+      "acceptance": [
+        {"type": "file_exists", "path": "apps/server/test/integration.test.ts"},
+        {"type": "file_exists", "path": "apps/server/test/contract.test.ts"},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/server run typecheck", "timeout": 180},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/server test", "timeout": 420}
+      ]
+    },
+    {
+      "key": "web-shell",
+      "title": "Atlas Web：应用壳、设计系统与数据层",
+      "kind": "code",
+      "agent": "claude",
+      "isolation": "worktree",
+      "timeout_sec": 2400,
+      "brief": "把 apps/web 从占位页升级为可用的企业级应用壳。先读 apps/web/src/App.tsx、apps/web/src/styles.css、docs/API-CONTRACT.md。\n\n要做：\n1) 设计系统：tokens（颜色/字号 13px 基准/间距/圆角）、按钮、输入、徽章、卡片、Tabs、Dialog、Toast、空态、骨架屏；浅色为主，支持 dark。\n2) 路由：不引第三方路由库，用 hash 路由（#/articles、#/articles/:id、#/tickets、#/tickets/:id、#/search、#/admin、#/login）。\n3) 数据层 src/api.ts：fetch 封装、401 跳登录、错误 Toast、AbortController、类型来自 @atlas/shared。\n4) 布局：左侧栏（知识库/工单/搜索/管理 + 用户区）、顶栏（面包屑、搜索框、新建按钮）、主区。\n5) 登录页（真实 POST /api/auth/login）。\n6) 页面先用清晰占位组件，但必须可编译、可运行。\n\n禁止：不要改 apps/server/**、packages/shared/**、根 package.json。\n验收：npm --workspace apps/web run typecheck；npm --workspace apps/web run build。",
+      "write_scope": ["apps/web/**"],
+      "outputs": ["apps/web/src/layout/AppShell.tsx", "apps/web/src/api.ts", "apps/web/src/styles.css", "apps/web/src/components/Button.tsx"],
+      "acceptance": [
+        {"type": "file_exists", "path": "apps/web/src/api.ts"},
+        {"type": "file_exists", "path": "apps/web/src/layout/AppShell.tsx"},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/web run typecheck", "timeout": 180},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/web run build", "timeout": 300}
+      ]
+    },
+    {
+      "key": "web-knowledge",
+      "title": "Atlas Web：知识库列表/详情/编辑器/搜索",
+      "kind": "code",
+      "agent": "codex",
+      "isolation": "worktree",
+      "depends_on": ["web-shell", "articles"],
+      "timeout_sec": 2400,
+      "brief": "在已有的 apps/web 应用壳上实现知识库功能。\n\n- 文章列表：搜索框、标签过滤、状态过滤、分页、空态；\n- 文章详情：标题、作者、时间、标签、Markdown 渲染（自己实现安全渲染：先转义 HTML，再处理标题/列表/代码/链接）、评论列表与发表；\n- 编辑器：新建/编辑，标题、正文、标签、草稿/发布；保存调用真实 API；未保存离开提示；\n- 全局搜索页：文章 + 工单结果分组；\n- 版本历史抽屉。\n\n复用 apps/web/src/ui 的设计系统，不新增依赖。\n禁止：不要改 apps/server/**、apps/web/src/app/**、apps/web/src/api.ts、apps/web/src/ui/**。\n验收：typecheck + build 通过；页面在无数据时有空态、请求失败有错误提示。",
+      "write_scope": ["apps/web/src/features/knowledge/**", "apps/web/src/features/search/**"],
+      "outputs": ["apps/web/src/features/knowledge/ArticleListPage.tsx", "apps/web/src/features/knowledge/ArticleEditorPage.tsx", "apps/web/src/features/knowledge/markdown.tsx"],
+      "acceptance": [
+        {"type": "file_exists", "path": "apps/web/src/features/knowledge/ArticleListPage.tsx"},
+        {"type": "file_exists", "path": "apps/web/src/features/knowledge/ArticleEditorPage.tsx"},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/web run typecheck", "timeout": 180},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/web run build", "timeout": 300}
+      ]
+    },
+    {
+      "key": "web-tickets",
+      "title": "Atlas Web：工单看板与详情",
+      "kind": "code",
+      "agent": "opencode",
+      "isolation": "worktree",
+      "depends_on": ["web-shell", "tickets"],
+      "timeout_sec": 2400,
+      "brief": "在已有的 apps/web 应用壳上实现工单功能。\n\n- 看板：open / in_progress / resolved / closed 四列，卡片显示标题、优先级、指派人、标签、更新时间；列内计数；\n- 创建工单对话框：标题、正文、优先级、指派人、标签；\n- 工单详情页/抽屉：正文、评论时间线、发表评论、状态推进按钮（按合法迁移）、指派（admin）、优先级修改；\n- 筛选：状态、优先级、指派人、关键词；空态与错误态；\n- 所有操作调用真实 API 并刷新数据。\n\n复用 apps/web/src/ui 与 api.ts，不新增依赖。\n禁止：不要改 apps/server/**、apps/web/src/app/**、apps/web/src/api.ts、apps/web/src/ui/**。\n验收：typecheck + build 通过。",
+      "write_scope": ["apps/web/src/features/tickets/**"],
+      "outputs": ["apps/web/src/features/tickets/TicketsPage.tsx", "apps/web/src/features/tickets/TicketDetailPage.tsx"],
+      "acceptance": [
+        {"type": "file_exists", "path": "apps/web/src/features/tickets/TicketsPage.tsx"},
+        {"type": "file_exists", "path": "apps/web/src/features/tickets/TicketDetailPage.tsx"},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/web run typecheck", "timeout": 180},
+        {"type": "command_exit_zero", "command": "npm --workspace apps/web run build", "timeout": 300}
+      ]
+    },
+    {
+      "key": "docs",
+      "title": "Atlas：交付文档与运行手册",
+      "kind": "doc",
+      "agent": "dsh",
+      "isolation": "worktree",
+      "depends_on": ["api-tests", "web-knowledge", "web-tickets"],
+      "timeout_sec": 1800,
+      "brief": "为 Atlas 写交付文档，必须与真实代码一致：\n- README.md：定位、架构图（mermaid）、目录、快速开始（npm install / seed / dev / test / build）、默认账号与安全说明；\n- docs/DESIGN.md：模块划分、数据模型、认证与权限、状态机、错误处理、前端结构；\n- docs/API.md：从代码与 docs/API-CONTRACT.md 校对后的接口清单（method/path/权限/请求/响应/错误码）；\n- docs/OPERATIONS.md：部署、备份 SQLite、升级迁移、日志与排障；\n- docs/TESTING.md：测试分层、如何新增测试、当前验收命令。\n\n禁止改代码。所有命令必须实际可执行；不确定的去读 package.json 与源码。\n验收：4 个文件存在；README 含 npm test 与 npm run build；API.md 至少列出 15 个接口。",
+      "write_scope": ["README.md", "docs/**"],
+      "outputs": ["README.md", "docs/DESIGN.md", "docs/API.md", "docs/OPERATIONS.md", "docs/TESTING.md"],
+      "acceptance": [
+        {"type": "file_exists", "path": "docs/DESIGN.md"},
+        {"type": "file_exists", "path": "docs/API.md"},
+        {"type": "file_exists", "path": "docs/OPERATIONS.md"},
+        {"type": "file_exists", "path": "docs/TESTING.md"},
+        {"type": "content_contains", "path": "README.md", "text": "npm test"},
+        {"type": "content_contains", "path": "README.md", "text": "npm run build"}
+      ]
+    },
+    {
+      "key": "qa",
+      "title": "Atlas：全量验收与缺陷修复",
+      "kind": "code",
+      "agent": "codex",
+      "isolation": "worktree",
+      "depends_on": ["docs"],
+      "timeout_sec": 3000,
+      "brief": "做最终验收并修复缺陷，目标是交付一个真正可运行的项目。\n\n步骤：\n1) npm install（如需）；npm run typecheck；npm test；npm run build；\n2) 启动后端（PORT=8799 node --import tsx apps/server/src/index.ts 或 npm run dev:server），curl /api/health、/api/articles、/api/tickets；\n3) 如有失败：定位根因并修复，优先改代码而不是删测试；每修一处重跑相关测试；\n4) 写 docs/ACCEPTANCE.md：记录实际执行的命令、结果、遗留问题（没有就写 none）；\n5) 不得为了让测试通过而跳过/删除用例；不得 mock 掉真实 HTTP。\n\n禁止：不要改 docs/API-CONTRACT.md 的契约来迁就实现。\n验收：npm run typecheck && npm test && npm run build 全部 exit 0；docs/ACCEPTANCE.md 存在且记录真实结果。",
+      "write_scope": ["apps/**", "packages/**", "docs/ACCEPTANCE.md", "package.json", "package-lock.json"],
+      "outputs": ["docs/ACCEPTANCE.md"],
+      "acceptance": [
+        {"type": "file_exists", "path": "docs/ACCEPTANCE.md"},
+        {"type": "command_exit_zero", "command": "npm run typecheck", "timeout": 300},
+        {"type": "command_exit_zero", "command": "npm test", "timeout": 600},
+        {"type": "command_exit_zero", "command": "npm run build", "timeout": 420}
+      ]
+    }
+  ]
+}

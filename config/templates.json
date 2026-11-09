@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "implement",
+      "name": "实现代码 / 功能",
+      "kind": "code",
+      "role": "implementer",
+      "isolation": "copy",
+      "read_only": false,
+      "brief": "在工作区中完成以下编码任务：\n{{goal}}",
+      "acceptance_ref": "file-changed",
+      "prefer": {
+        "strengths": [
+          "code"
+        ],
+        "agents": [
+          "codex",
+          "opencode",
+          "dsh",
+          "claude"
+        ]
+      },
+      "timeout_sec": 2400
+    },
+    {
+      "id": "write-doc",
+      "name": "撰写 / 改写文档",
+      "kind": "doc",
+      "role": "writer",
+      "isolation": "copy",
+      "read_only": false,
+      "brief": "在工作区中完成以下文档任务：\n{{goal}}",
+      "acceptance_ref": "report-written",
+      "prefer": {
+        "strengths": [
+          "doc",
+          "prose"
+        ],
+        "agents": [
+          "claude",
+          "codex",
+          "dsh",
+          "opencode"
+        ]
+      },
+      "timeout_sec": 2400
+    },
+    {
+      "id": "research",
+      "name": "调研并产出笔记",
+      "kind": "research",
+      "role": "researcher",
+      "isolation": "copy",
+      "read_only": false,
+      "brief": "针对以下主题做调研，把结论写进工作区的调研笔记：\n{{goal}}",
+      "acceptance_ref": "file-exists",
+      "prefer": {
+        "strengths": [
+          "research",
+          "reasoning"
+        ],
+        "agents": [
+          "claude",
+          "dsh",
+          "codex",
+          "opencode"
+        ]
+      },
+      "timeout_sec": 1800
+    },
+    {
+      "id": "organize-data",
+      "name": "整理 / 清洗数据",
+      "kind": "data",
+      "role": "worker",
+      "isolation": "copy",
+      "read_only": false,
+      "brief": "整理工作区中的数据文件：\n{{goal}}",
+      "acceptance_ref": "file-changed",
+      "prefer": {
+        "strengths": [
+          "data"
+        ],
+        "agents": [
+          "opencode",
+          "dsh",
+          "codex",
+          "claude"
+        ]
+      },
+      "timeout_sec": 1800
+    },
+    {
+      "id": "review",
+      "name": "审阅他人产出（只读）",
+      "kind": "review",
+      "role": "reviewer",
+      "isolation": "shared",
+      "read_only": true,
+      "brief": "以只读方式审阅工作区中已有的产出，给出评审意见（不要修改任何文件）：\n{{goal}}",
+      "acceptance_ref": "review-readonly",
+      "prefer": {
+        "strengths": [
+          "review",
+          "reasoning"
+        ],
+        "agents": [
+          "claude",
+          "codex",
+          "dsh",
+          "opencode"
+        ]
+      },
+      "timeout_sec": 1800
+    },
+    {
+      "id": "human-step",
+      "name": "人工执行步骤",
+      "kind": "manual",
+      "role": "human",
+      "isolation": "shared",
+      "read_only": false,
+      "brief": "需要人工完成：\n{{goal}}",
+      "acceptance_ref": "manual-confirm",
+      "prefer": {
+        "agents": [
+          "human"
+        ]
+      },
+      "timeout_sec": 0
+    },
+    {
+      "id": "make-ppt",
+      "name": "制作 PPT / 演示材料",
+      "kind": "ppt",
+      "role": "writer",
+      "isolation": "copy",
+      "read_only": false,
+      "brief": "根据已有材料制作可打开的 PPT：\n{{goal}}",
+      "acceptance_ref": "file-exists",
+      "prefer": {
+        "strengths": ["doc", "prose"],
+        "agents": ["claude", "codex", "dsh", "opencode"]
+      },
+      "timeout_sec": 2400
+    },
+    {
+      "id": "make-diagrams",
+      "name": "制作图表 / 架构图",
+      "kind": "diagrams",
+      "role": "worker",
+      "isolation": "copy",
+      "read_only": false,
+      "brief": "生成图表、架构图或数据可视化页面：\n{{goal}}",
+      "acceptance_ref": "file-changed",
+      "prefer": {
+        "strengths": ["data", "code"],
+        "agents": ["codex", "claude", "opencode", "dsh"]
+      },
+      "timeout_sec": 1800
+    },
+    {
+      "id": "build-web",
+      "name": "实现 Web 页面 / 3D 可视化",
+      "kind": "web",
+      "role": "implementer",
+      "isolation": "copy",
+      "read_only": false,
+      "brief": "实现可运行的 Web 页面与 3D/可视化交互：\n{{goal}}",
+      "acceptance_ref": "file-changed",
+      "prefer": {
+        "strengths": ["code", "data"],
+        "agents": ["codex", "opencode", "claude", "dsh"]
+      },
+      "timeout_sec": 2400
+    }
+  ]
+}

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;">
+<title>MultiAgent 工作台</title>
+<style>
+  :root {
+    --paper: #f2f0ea;
+    --paper-2: #faf8f2;
+    --card: #fffdf8;
+    --ink: #17212b;
+    --muted: #66717c;
+    --soft: #8b949c;
+    --rule: #d9d4c8;
+    --rule-strong: #bdb5a6;
+    --accent: #df542f;
+    --accent-soft: #f8e2d8;
+    --red: #b3312f;
+    --shadow: rgba(34, 41, 47, 0.08);
+    --mono: "Cascadia Code", "Cascadia Mono", Consolas, monospace;
+    --display: "Bahnschrift SemiCondensed", "Aptos Display", "Microsoft YaHei UI", sans-serif;
+    --body: "Aptos", "Microsoft YaHei UI", "Noto Sans SC", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(680px 420px at 88% -12%, rgba(223, 84, 47, 0.13), transparent 62%),
+      linear-gradient(90deg, rgba(23, 33, 43, 0.045) 1px, transparent 1px) 0 0 / 32px 32px,
+      linear-gradient(0deg, rgba(23, 33, 43, 0.045) 1px, transparent 1px) 0 0 / 32px 32px,
+      var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .wrap { width: min(600px, 100%); }
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+  .mark {
+    width: 52px; height: 52px; flex: 0 0 52px;
+    background: var(--ink); color: var(--card);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; line-height: 1;
+  }
+  h1 {
+    margin: 0;
+    font-family: var(--display);
+    font-size: 23px;
+    letter-spacing: 0.01em;
+    font-weight: 600;
+  }
+  .kicker {
+    margin: 4px 0 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--soft);
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    box-shadow: 0 1px 2px var(--shadow);
+    padding: 22px 24px;
+  }
+  .row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .label { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+  .pct { font-family: var(--mono); font-size: 11px; color: var(--soft); letter-spacing: 0.06em; }
+  .bar {
+    height: 5px; background: var(--paper-2);
+    border: 1px solid var(--rule); border-radius: 3px; overflow: hidden;
+  }
+  .bar > i {
+    display: block; height: 100%; width: 0%;
+    background: var(--accent);
+    transition: width 200ms linear;
+  }
+  .status { margin: 14px 0 0; font-size: 13px; color: var(--ink); }
+  .detail { margin: 6px 0 0; font-size: 11px; color: var(--soft); line-height: 1.6; }
+  .mono { font-family: var(--mono); }
+  .error h2 { margin: 0 0 10px; font-family: var(--display); font-size: 18px; color: var(--red); }
+  .error p { margin: 0 0 8px; font-size: 12.5px; color: var(--ink); line-height: 1.65; white-space: pre-wrap; }
+  .error .path {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    background: var(--paper-2); border: 1px dashed var(--rule-strong);
+    border-radius: 4px; padding: 8px 10px; word-break: break-all;
+  }
+  .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  button {
+    font-family: var(--body); font-size: 12.5px; line-height: 1;
+    padding: 9px 16px; border-radius: 4px; cursor: pointer;
+    border: 1px solid var(--rule-strong); background: var(--card); color: var(--ink);
+    transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
+  }
+  button:hover { background: var(--paper-2); border-color: var(--ink); }
+  button:active { transform: translateY(1px); }
+  button.primary { background: var(--ink); border-color: var(--ink); color: var(--card); }
+  button.primary:hover { background: #22303d; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .hint { margin: 14px 0 0; font-size: 11px; color: var(--soft); line-height: 1.7; }
+  .hint code {
+    font-family: var(--mono); font-size: 10.5px;
+    background: var(--paper-2); border: 1px solid var(--rule); border-radius: 3px;
+    padding: 1px 4px;
+  }
+  .foot {
+    display: flex; justify-content: space-between; gap: 12px;
+    margin-top: 14px; padding: 0 2px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--soft);
+  }
+  .foot span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) {
+    .bar > i { transition: none; }
+    button { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">M</div>
+    <div>
+      <h1>MultiAgent 工作台</h1>
+      <p class="kicker">MULTI-AGENT ORCHESTRATION DESK · 本地桌面端</p>
+    </div>
+  </div>
+
+  <section class="panel" id="panel-boot" aria-live="polite">
+    <div class="row">
+      <span class="label">启动状态</span>
+      <span class="pct" id="pct">0%</span>
+    </div>
+    <div class="bar"><i id="bar"></i></div>
+    <p class="status" id="status">正在准备桌面环境…</p>
+    <p class="detail mono" id="detail"></p>
+  </section>
+
+  <section class="panel error" id="panel-error" hidden>
+    <h2 id="err-title">后端启动失败</h2>
+    <p id="err-detail"></p>
+    <p class="path" id="err-log"></p>
+    <div class="actions">
+      <button type="button" class="primary" id="btn-retry">重试启动</button>
+      <button type="button" id="btn-logs">打开日志</button>
+      <button type="button" id="btn-data">打开数据目录</button>
+      <button type="button" id="btn-copy">复制诊断</button>
+      <button type="button" id="btn-quit">退出</button>
+    </div>
+    <p class="hint">
+      开发模式：确认仓库内 <code>.venv</code> 存在并已安装 <code>requirements.txt</code>；
+      打包模式：确认安装目录 <code>resources\backend</code> 内有 <code>multiagent-backend.exe</code>。
+      菜单「文件 → 重试启动后端」等价于上方重试按钮。
+    </p>
+  </section>
+
+  <div class="foot mono">
+    <span id="foot-port"></span>
+    <span id="foot-version"></span>
+  </div>
+</div>
+
+<script>
+  (function () {
+    "use strict";
+    var bridge = window.multiagentDesktop || null;
+    var $ = function (id) { return document.getElementById(id); };
+    var lastPayload = {};
+
+    function setPercent(value) {
+      var pct = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+      $("bar").style.width = pct + "%";
+      $("pct").textContent = pct + "%";
+    }
+
+    window.__splash = function (payload) {
+      payload = payload || {};
+      lastPayload = payload;
+      var stage = payload.stage === "error" ? "error" : "boot";
+      $("panel-boot").hidden = stage !== "boot";
+      $("panel-error").hidden = stage !== "error";
+
+      if (stage === "error") {
+        $("err-title").textContent = payload.title || "后端启动失败";
+        $("err-detail").textContent = payload.detail || "";
+        $("err-log").textContent = payload.logPath ? "日志：" + payload.logPath : "";
+      } else {
+        if (typeof payload.percent === "number") setPercent(payload.percent);
+        if (payload.status) $("status").textContent = payload.status;
+        if (payload.detail) $("detail").textContent = payload.detail;
+      }
+      if (payload.port) $("foot-port").textContent = "127.0.0.1:" + payload.port;
+      if (payload.version) $("foot-version").textContent = "v" + payload.version;
+    };
+
+    // 桌面桥不可用时（例如浏览器直接打开本文件）禁用按钮，避免点了没反应
+    function copyDiagnostics() {
+      var text = [
+        "MultiAgent 启动诊断",
+        "标题：" + (lastPayload.title || ""),
+        "详情：" + (lastPayload.detail || ""),
+        "日志：" + (lastPayload.logPath || ""),
+        "端口：" + (lastPayload.port || ""),
+        "版本：" + (lastPayload.version || "")
+      ].join("\n");
+      var done = function () {
+        var button = $("btn-copy");
+        if (!button) return;
+        button.textContent = "已复制";
+        setTimeout(function () { button.textContent = "复制诊断"; }, 1200);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(fallback);
+      } else {
+        fallback();
+      }
+      function fallback() {
+        try {
+          var area = document.createElement("textarea");
+          area.value = text;
+          area.setAttribute("readonly", "");
+          area.style.position = "fixed";
+          area.style.left = "-9999px";
+          document.body.appendChild(area);
+          area.select();
+          document.execCommand("copy");
+          document.body.removeChild(area);
+          done();
+        } catch (_) { /* 复制失败不阻塞错误页 */ }
+      }
+    }
+
+    var actions = {
+      "btn-retry": function () { bridge && bridge.retryBackend && bridge.retryBackend(); },
+      "btn-logs": function () { bridge && bridge.openLogs && bridge.openLogs(); },
+      "btn-data": function () { bridge && bridge.openDataDir && bridge.openDataDir(); },
+      "btn-copy": copyDiagnostics,
+      "btn-quit": function () { bridge && bridge.quit && bridge.quit(); }
+    };
+    Object.keys(actions).forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      if (!bridge && id !== "btn-copy") { el.disabled = true; return; }
+      el.addEventListener("click", function () {
+        el.disabled = true;
+        setTimeout(function () { el.disabled = false; }, 1200);
+        try { actions[id](); } catch (_) { /* 桥异常不影响页面 */ }
+      });
+    });
+
+    if (bridge && bridge.info) {
+      bridge.info().then(function (info) {
+        if (!info) return;
+        $("foot-version").textContent = "v" + (info.appVersion || "");
+        if (info.port) $("foot-port").textContent = "127.0.0.1:" + info.port;
+      }).catch(function () { /* ignore */ });
+    }
+  }());
+</script>
+</body>
+</html>

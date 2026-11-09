@@ -1,0 +1,252 @@
+{
+  "tasks": [
+    {
+      "key": "design",
+      "title": "设计《我的世界》Web 版技术方案",
+      "kind": "research",
+      "agent": "claude",
+      "brief": "为当前工作区设计一个可在浏览器直接玩的《我的世界》风格体素沙盒。硬性约束：\n1) 零构建：不需要 npm install / 打包步骤，静态文件直接由任意静态服务器打开；\n2) 无运行时外网依赖：不能用 CDN；若使用第三方库，必须把库文件 vendored 进 vendor/；\n3) 使用 WebGL2 渲染（原生 WebGL2 或本地 vendored three.js 均可）；\n4) 程序化地形、第一人称移动（WASD + 鼠标视角）、跳跃/重力/AABB 碰撞；\n5) 左键破坏方块、右键放置方块、数字键 1-8 快捷栏；\n6) localStorage 存档/读档；\n7) 响应式 UI（开始遮罩、准星、快捷栏、FPS/坐标 HUD）。\n\n产出 docs/DESIGN.md，必须写清：目标与非目标、目录/模块划分（core/math、core/world、core/blocks、core/physics、render/mesher、render/renderer、game/player、game/save、main）、每个模块的职责与导出接口、世界/区块数据结构与坐标系约定、地形生成算法、面剔除网格化策略、AABB 碰撞与分轴移动、输入与指针锁定、存档格式与版本字段、性能预算（视距/区块数/三角形数）、Node 可测试的纯逻辑边界、以及每个里程碑的验收命令。不要写实现代码，只写可执行的设计。",
+      "outputs": [
+        "docs/DESIGN.md"
+      ],
+      "acceptance": [
+        {
+          "type": "file_exists",
+          "path": "docs/DESIGN.md"
+        },
+        {
+          "type": "content_contains",
+          "path": "docs/DESIGN.md",
+          "text": "渲染"
+        },
+        {
+          "type": "content_contains",
+          "path": "docs/DESIGN.md",
+          "text": "碰撞"
+        },
+        {
+          "type": "content_contains",
+          "path": "docs/DESIGN.md",
+          "text": "验收"
+        }
+      ],
+      "timeout_sec": 900
+    },
+    {
+      "key": "engine",
+      "title": "实现体素引擎核心（世界/网格/WebGL2 渲染）",
+      "kind": "code",
+      "agent": "codex",
+      "depends_on": [
+        "design"
+      ],
+      "brief": "按 docs/DESIGN.md 实现可运行的体素引擎核心。必须产出以下文件（ESM，package.json 里 \"type\":\"module\"）：\n- index.html：canvas + UI 容器，引用 src/main.js（type=module）；\n- styles.css：全屏 canvas、准星、HUD、快捷栏、开始遮罩；\n- package.json：name/private/type=module/scripts（serve、test）；\n- src/core/math.js：Vec3/Mat4 最小实现、clamp、AABB 相交；\n- src/core/blocks.js：方块注册表（id、名称、颜色/纹理坐标、是否透明、是否可破坏）；\n- src/core/world.js：Chunk（16×16×64 或设计值）、getBlock/setBlock、程序化地形生成（确定性种子）、区块脏标记、序列化/反序列化；\n- src/render/mesher.js：纯函数 buildChunkMesh(world, cx, cz)，只输出可见面（面剔除），返回可被单测断言的结构；\n- src/render/renderer.js：WebGL2 初始化、着色器、区块 VBO 上传、相机矩阵、天空色、简单方向光/环境光；\n- src/main.js：启动流程（生成世界、创建 renderer、渲染循环、窗口 resize），先不接玩家控制也要能看到地形。\n要求：不使用任何 CDN；不引入构建步骤；所有模块可被 Node 直接 import（DOM 相关代码只在 main/renderer 内部按需访问）。完成后运行 node --check 检查所有 JS 文件。",
+      "write_scope": [
+        "index.html",
+        "styles.css",
+        "package.json",
+        "src/**"
+      ],
+      "outputs": [
+        "index.html",
+        "src/main.js",
+        "src/core/world.js",
+        "src/render/mesher.js",
+        "src/render/renderer.js"
+      ],
+      "acceptance": [
+        {
+          "type": "file_exists",
+          "path": "index.html"
+        },
+        {
+          "type": "file_exists",
+          "path": "package.json"
+        },
+        {
+          "type": "file_exists",
+          "path": "src/core/world.js"
+        },
+        {
+          "type": "file_exists",
+          "path": "src/render/mesher.js"
+        },
+        {
+          "type": "file_exists",
+          "path": "src/render/renderer.js"
+        },
+        {
+          "type": "content_contains",
+          "path": "index.html",
+          "text": "canvas"
+        },
+        {
+          "type": "command_exit_zero",
+          "command": "node --check src/core/world.js"
+        },
+        {
+          "type": "command_exit_zero",
+          "command": "node --check src/render/mesher.js"
+        },
+        {
+          "type": "command_exit_zero",
+          "command": "node --check src/render/renderer.js"
+        },
+        {
+          "type": "command_exit_zero",
+          "command": "node --check src/main.js"
+        }
+      ],
+      "timeout_sec": 1800
+    },
+    {
+      "key": "gameplay",
+      "title": "实现玩家控制、碰撞、方块交互与存档",
+      "kind": "code",
+      "agent": "opencode",
+      "depends_on": [
+        "engine"
+      ],
+      "brief": "在已有体素引擎上实现完整可玩性：\n- src/core/physics.js：玩家 AABB、重力、分轴移动与碰撞解算（X/Y/Z 分轴，防穿墙/卡角）、跳跃、地面判定；\n- src/game/player.js：第一人称相机、指针锁定、WASD/Shift 冲刺/空格跳跃、鼠标视角、视距内方块射线拾取（DDA）；\n- src/game/interaction.js：左键破坏、右键在相邻面放置、不可破坏基岩、不能把方块放到玩家身体里；\n- src/game/hotbar.js：8 个方块快捷栏、数字键/滚轮切换、HUD 高亮；\n- src/game/save.js：localStorage 存档（版本号、种子、玩家位置、被修改方块差分），读档后恢复；R 键重置世界，F5 语义不要占用；\n- 更新 src/main.js 串起游戏循环：物理固定步长、渲染插值可省略、暂停/继续（Esc 释放指针）、HUD 显示坐标/FPS/选中方块；\n- 更新 index.html/styles.css 增加开始遮罩（点击开始）、准星、快捷栏、HUD。\n保持零构建、无 CDN。所有纯逻辑模块必须可被 Node import。完成后运行 node --check 检查所有 JS。",
+      "write_scope": [
+        "index.html",
+        "styles.css",
+        "src/**"
+      ],
+      "outputs": [
+        "src/core/physics.js",
+        "src/game/player.js",
+        "src/game/save.js",
+        "src/main.js"
+      ],
+      "acceptance": [
+        {
+          "type": "file_exists",
+          "path": "src/core/physics.js"
+        },
+        {
+          "type": "file_exists",
+          "path": "src/game/player.js"
+        },
+        {
+          "type": "file_exists",
+          "path": "src/game/save.js"
+        },
+        {
+          "type": "content_contains",
+          "path": "index.html",
+          "text": "hotbar"
+        },
+        {
+          "type": "command_exit_zero",
+          "command": "node --check src/core/physics.js"
+        },
+        {
+          "type": "command_exit_zero",
+          "command": "node --check src/game/player.js"
+        },
+        {
+          "type": "command_exit_zero",
+          "command": "node --check src/game/save.js"
+        },
+        {
+          "type": "command_exit_zero",
+          "command": "node --check src/main.js"
+        }
+      ],
+      "timeout_sec": 1800
+    },
+    {
+      "key": "tests",
+      "title": "补齐 Node 纯逻辑测试并修复发现的问题",
+      "kind": "code",
+      "agent": "codex",
+      "depends_on": [
+        "gameplay"
+      ],
+      "brief": "为当前项目补齐可离线运行的 Node 测试，并修复测试暴露的真实缺陷：\n- 新建 tests/run.js（ESM，零依赖）：覆盖 math（Vec3/Mat4/AABB）、blocks 注册表、world（set/get、区块边界、确定性地形、序列化往返）、mesher（实心区块内部面为 0、暴露面数量正确、透明方块处理）、physics（落地、撞墙、跳跃、分轴滑动、不穿角）、save（序列化/反序列化、版本字段、损坏数据回退）。\n- 测试必须用 node:assert/strict，输出清晰 PASS/FAIL 摘要，失败时 process.exitCode=1。\n- 若发现实现缺陷，直接修复 src/ 下对应代码（保持现有公开接口不变），不要改测试来迁就错误实现。\n- 在 package.json 增加 \"test\": \"node tests/run.js\"。\n完成后运行 node tests/run.js，必须全绿。",
+      "write_scope": [
+        "tests/**",
+        "src/**",
+        "package.json"
+      ],
+      "outputs": [
+        "tests/run.js"
+      ],
+      "acceptance": [
+        {
+          "type": "file_exists",
+          "path": "tests/run.js"
+        },
+        {
+          "type": "command_exit_zero",
+          "command": "node tests/run.js",
+          "timeout": 120
+        },
+        {
+          "type": "command_output_contains",
+          "command": "node tests/run.js",
+          "text": "PASS",
+          "timeout": 120
+        }
+      ],
+      "timeout_sec": 1800
+    },
+    {
+      "key": "review",
+      "title": "只读审阅代码与可玩性风险",
+      "kind": "review",
+      "agent": "claude",
+      "depends_on": [
+        "tests"
+      ],
+      "brief": "以只读方式审阅当前工作区的《我的世界》Web 实现。重点检查：\n1) 是否真的零构建、无 CDN、直接静态服务器可运行；\n2) WebGL2 资源生命周期（VBO/VAO/纹理/程序）是否泄漏，窗口 resize 是否正确；\n3) 区块网格化是否只输出可见面，透明方块是否有排序/剔除问题；\n4) 玩家碰撞是否可能穿墙、卡角、掉出世界；射线拾取是否有边界错误；\n5) 存档格式是否可演进（版本字段）、损坏存档是否会让游戏白屏；\n6) 输入/指针锁定/Esc 暂停是否存在状态机漏洞；\n7) 测试是否覆盖了关键纯逻辑，是否有「测试跟着错误实现走」的迹象。\n不要修改任何文件。把结论写进结构化交接：did、not_done、open_issues（按 P0/P1/P2 标注）、next_steps。给出具体文件:行号与可执行的修复建议。",
+      "acceptance_ref": "review-readonly",
+      "timeout_sec": 1200
+    },
+    {
+      "key": "polish",
+      "title": "按审阅意见修复并完成交付文档",
+      "kind": "code",
+      "agent": "codex",
+      "depends_on": [
+        "review"
+      ],
+      "brief": "读取审阅任务的交接说明，逐条处理 open_issues 中可复现、可修复的问题（P0 必须修，P1 尽量修，P2 记录取舍）。同时完成交付：\n- README.md：项目简介、如何运行（python -m http.server 8080 或 npx serve）、操作说明（WASD/鼠标/空格/Shift/左键/右键/1-8/R/Esc）、目录结构、测试命令、已知限制；\n- 修复审阅指出的渲染/碰撞/存档/输入问题，保持 tests/run.js 全绿；\n- 补一个 docs/QA.md：手工验收清单（启动、地形、移动、跳跃、破坏、放置、快捷栏、存档刷新、重置、resize、Esc），以及本次实际验证结果。\n- 不要引入构建步骤或 CDN。\n完成后运行 node tests/run.js 与 node --check 关键文件。",
+      "write_scope": [
+        "**"
+      ],
+      "outputs": [
+        "README.md",
+        "docs/QA.md"
+      ],
+      "acceptance": [
+        {
+          "type": "file_exists",
+          "path": "README.md"
+        },
+        {
+          "type": "file_exists",
+          "path": "docs/QA.md"
+        },
+        {
+          "type": "content_contains",
+          "path": "README.md",
+          "text": "WASD"
+        },
+        {
+          "type": "command_exit_zero",
+          "command": "node tests/run.js",
+          "timeout": 120
+        },
+        {
+          "type": "command_output_contains",
+          "command": "node tests/run.js",
+          "text": "PASS",
+          "timeout": 120
+        }
+      ],
+      "timeout_sec": 1800
+    }
+  ]
+}
